@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "0.0.9"
+const version = "0.0.10"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
@@ -79,7 +79,7 @@ func main() {
 		log.Fatal("FATAL: init:", err)
 	}
 
-	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeStateChange)
+	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
 	}
