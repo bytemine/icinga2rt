@@ -9,6 +9,8 @@ hosts or services monitored by icinga2.
 			configuration file (default "/etc/bytemine/icinga2rt.json")
 	-debug
 			debug mode, print log messages (default true)
+	-debugevents
+			print received events
 	-example
 			write example configuration file as icinga2rt.json.example to current directory
 	-version

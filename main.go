@@ -13,12 +13,13 @@ import (
 	"time"
 )
 
-const version = "0.0.10"
+const version = "0.0.11"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
 var configFile = flag.String("config", "/etc/bytemine/icinga2rt.json", "configuration file")
 var debug = flag.Bool("debug", true, "debug mode, print log messages")
+var debugEvents = flag.Bool("debugevents", false, "print received events")
 var showVersion = flag.Bool("version", false, "display version and exit")
 
 // openEventStreamer connects to the icinga2 API, exponentially backing off when the connection fails
@@ -125,6 +126,14 @@ func main() {
 
 			dec = json.NewDecoder(r)
 			continue
+		}
+
+		if *debug && *debugEvents {
+			buf, err := json.Marshal(x)
+			if err != nil {
+				log.Fatal("FATAL: main:", err)
+			}
+			log.Println("main: event stream:", string(buf))
 		}
 
 		err = tu.updateTicket(&x)
