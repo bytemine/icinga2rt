@@ -23,6 +23,8 @@ The `icinga2rt.json.example` file is a good starting point for a config.
 
 ### explained example configuration
 
+If parts of this are used, comments must be removed. Using the `-example` switch is recommended.
+
 	{
 		// Icinga2 API configuration
 		"Icinga": {
