@@ -76,27 +76,33 @@ func (t *ticketUpdater) updateTicket(e *event.Notification) error {
 		return nil
 	}
 
+	// no ticket existing for this host/service combination
 	if et == nil {
 		return t.newEvent(e)
 	}
 
+	// ticket existing for this host/service combination
 	return t.oldEvent(e, et.Event, et.TicketID)
 }
 
 func (t *ticketUpdater) newEvent(e *event.Notification) error {
+	// don't create a new ticket if state is OK
 	if e.CheckResult.State == event.StateOK {
 		return nil
 	}
 
+	// create ticket
 	return t.createTicket(e)
 }
 
 func (t *ticketUpdater) oldEvent(newEvent *event.Notification, oldEvent *event.Notification, ticketID int) error {
 	switch newEvent.CheckResult.State {
 	case event.StateOK:
+		// new state is OK and old ticket is existing
 		return t.deleteOrCommentTicket(newEvent, oldEvent, ticketID)
 	default:
-		// don't update if the state hasn't changed
+		// comment ticket with new state.
+		// don't update if the state hasn't changed.
 		if newEvent.CheckResult.State != oldEvent.CheckResult.State {
 			return t.commentTicket(newEvent, oldEvent, ticketID)
 		}
@@ -132,9 +138,15 @@ func (t *ticketUpdater) deleteOrCommentTicket(newEvent, oldEvent *event.Notifica
 
 	switch oldTicket.Owner {
 	case t.nobody:
+		// nobody owns this ticket, delete it
 		return t.deleteTicket(newEvent, oldEvent, ticketID)
 	default:
-		return t.commentTicket(newEvent, oldEvent, ticketID)
+		// ticket is owned, comment and forget about this ticket.
+		err := t.commentTicket(newEvent, oldEvent, ticketID)
+		if err != nil {
+			return err
+		}
+		return t.cache.deleteEventTicket(newEvent)
 	}
 }
 
