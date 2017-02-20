@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "0.0.11"
+const version = "0.0.12"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
