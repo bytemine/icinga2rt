@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/bytemine/go-icinga2/event"
+	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/bytemine/go-icinga2/event"
 	"hash/fnv"
 	"log"
 )
@@ -135,6 +136,77 @@ func (c *cache) deleteEventTicket(e *event.Notification) error {
 		}
 
 		return hostBucket.Delete(eID)
+	})
+
+	return err
+}
+
+func (c *cache) dump() ([]byte, error) {
+	var buf bytes.Buffer
+
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(eventBucketName))
+		if b == nil {
+			return fmt.Errorf("event bucket doesn't exist")
+		}
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			et, err := decodeEventTicket(v)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(&buf, "%v,%v,%v,%v\n", et.TicketID, et.Event.Host, et.Event.Service, et.Event.CheckResult.State)
+		}
+
+		return nil
+	})
+
+	return buf.Bytes(), err
+}
+
+func (c *cache) clean() error {
+	okEvents := [][]byte{}
+
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(eventBucketName))
+		if b == nil {
+			return fmt.Errorf("event bucket doesn't exist")
+		}
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			et, err := decodeEventTicket(v)
+			if err != nil {
+				return err
+			}
+
+			if et.Event.CheckResult.State == event.StateOK {
+				okEvents = append(okEvents, k)
+			}
+
+		}
+
+		return nil
+	})
+
+	err = c.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(eventBucketName))
+		if b == nil {
+			return fmt.Errorf("event bucket doesn't exist")
+		}
+
+		for _, v := range okEvents {
+			err := b.Delete(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 
 	return err
