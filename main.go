@@ -21,6 +21,8 @@ var configFile = flag.String("config", "/etc/bytemine/icinga2rt.json", "configur
 var debug = flag.Bool("debug", true, "debug mode, print log messages")
 var debugEvents = flag.Bool("debugevents", false, "print received events")
 var showVersion = flag.Bool("version", false, "display version and exit")
+var dumpCache = flag.Bool("dumpCache", false, "dump contents of cache to stdout")
+var cleanCache = flag.Bool("cleanCache", false, "remove old cache entries with state OK")
 
 // openEventStreamer connects to the icinga2 API, exponentially backing off when the connection fails
 func openEventStreamer(retries int, icingaClient *icinga2.Client, queue string, filter string, streamtype ...event.StreamType) (io.Reader, error) {
@@ -75,17 +77,36 @@ func main() {
 		log.Fatal("FATAL: init:", err)
 	}
 
+	eventCache, err := openCache(conf.Cache.File)
+	if err != nil {
+		log.Fatal("FATAL: init:", err)
+	}
+
+	if *dumpCache {
+		buf, err := eventCache.dump()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(buf))
+		os.Exit(0)
+	}
+
+	if *cleanCache {
+		err := eventCache.clean()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		os.Exit(0)
+	}
+
 	icingaClient, err := icinga2.NewClient(conf.Icinga.URL, conf.Icinga.User, conf.Icinga.Password, conf.Icinga.Insecure)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
 	}
 
 	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
-	if err != nil {
-		log.Fatal("FATAL: init:", err)
-	}
-
-	eventCache, err := openCache(conf.Cache.File)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
 	}
