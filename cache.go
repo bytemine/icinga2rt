@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/boltdb/bolt"
 	"hash/fnv"
 	"log"
+
+	"github.com/boltdb/bolt"
+	"github.com/bytemine/go-icinga2/event"
 )
 
 const eventBucketName = "events"
@@ -63,7 +64,7 @@ func encodeEventTicket(et *eventTicket) ([]byte, error) {
 
 func (c *cache) getEventTicket(e *event.Notification) (*eventTicket, error) {
 	if *debug {
-		log.Printf("cache: get event for %v/%v", e.Host, e.Service)
+		log.Printf("cache: %v/%v get", e.Host, e.Service)
 	}
 
 	eID := eventID(e)
@@ -99,7 +100,7 @@ func (c *cache) getEventTicket(e *event.Notification) (*eventTicket, error) {
 
 func (c *cache) updateEventTicket(e *event.Notification, ticketID int) error {
 	if *debug {
-		log.Printf("cache: update event for %v/%v", e.Host, e.Service)
+		log.Printf("cache: %v/%v update", e.Host, e.Service)
 	}
 
 	eID := eventID(e)
@@ -123,7 +124,7 @@ func (c *cache) updateEventTicket(e *event.Notification, ticketID int) error {
 
 func (c *cache) deleteEventTicket(e *event.Notification) error {
 	if *debug {
-		log.Printf("cache: delete event for %v/%v", e.Host, e.Service)
+		log.Printf("cache: %v/%v delete", e.Host, e.Service)
 	}
 
 	eID := eventID(e)

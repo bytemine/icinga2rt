@@ -132,7 +132,7 @@ func (t *ticketUpdater) createTicket(e *event.Notification) error {
 	}
 
 	if *debug {
-		log.Printf("ticket updater: created ticket #%v", newTicket.ID)
+		log.Printf("ticket updater: %v/%v: created ticket #%v", e.Host, e.Service, newTicket.ID)
 	}
 
 	err = t.cache.updateEventTicket(e, newTicket.ID)
@@ -171,7 +171,7 @@ func (t *ticketUpdater) commentTicket(newEvent, oldEvent *event.Notification, ti
 	}
 
 	if *debug {
-		log.Printf("ticket updater: commented ticket #%v", ticketID)
+		log.Printf("ticket updater: %v/%v: commented ticket #%v", newEvent.Host, newEvent.Service, ticketID)
 	}
 
 	err = t.cache.updateEventTicket(newEvent, ticketID)
@@ -191,7 +191,7 @@ func (t *ticketUpdater) deleteTicket(newEvent, oldEvent *event.Notification, tic
 	}
 
 	if *debug {
-		log.Printf("ticket updater: deleted ticket #%v", updatedTicket.ID)
+		log.Printf("ticket updater: %v/%v: deleted ticket #%v", newEvent.Host, newEvent.Service, updatedTicket.ID)
 	}
 
 	if err = t.cache.deleteEventTicket(newEvent); err != nil {
