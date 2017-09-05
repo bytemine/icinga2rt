@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/bytemine/go-icinga2"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/bytemine/icinga2rt/rt"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/bytemine/go-icinga2"
+	"github.com/bytemine/go-icinga2/event"
+	"github.com/bytemine/icinga2rt/rt"
 )
 
-const version = "0.0.12"
+const version = "0.0.13"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
