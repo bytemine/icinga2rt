@@ -1,0 +1,8 @@
+build*
+*.bolt
+*.json
+*.txt
+appveyor.yml
+Makefile
+icinga2rt
+vendor
