@@ -5,12 +5,16 @@ hosts or services monitored by icinga2.
 
 ## commandline arguments
 
+	-cleanCache
+			remove old cache entries with state OK
 	-config string
 			configuration file (default "/etc/bytemine/icinga2rt.json")
 	-debug
 			debug mode, print log messages (default true)
 	-debugevents
 			print received events
+	-dumpCache
+			dump contents of cache to stdout
 	-example
 			write example configuration file as icinga2rt.json.example to current directory
 	-version
