@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/bytemine/go-icinga2/event"
 	"github.com/bytemine/icinga2rt/rt"
-	"log"
 )
 
 type permitFunc func(e *event.Notification) bool
@@ -96,6 +97,18 @@ func (t *ticketUpdater) newEvent(e *event.Notification) error {
 }
 
 func (t *ticketUpdater) oldEvent(newEvent *event.Notification, oldEvent *event.Notification, ticketID int) error {
+	// if old ticket has status "deleted", create a new one to prevent reopening tickets.
+	// we don't need to delete the cache entry as it will be overwritten in createTicket.
+	oldTicket, err := t.rtClient.Ticket(ticketID)
+	if err != nil {
+		return err
+	}
+
+	if oldTicket.Status == "deleted" {
+		log.Printf("ticket updater: %v/%v: not reusing ticket %v with status %s", newEvent.Host, newEvent.Service, oldTicket.ID, oldTicket.Status)
+		return t.createTicket(newEvent)
+	}
+
 	switch newEvent.CheckResult.State {
 	case event.StateOK:
 		// new state is OK and old ticket is existing
