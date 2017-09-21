@@ -23,7 +23,8 @@ var debug = flag.Bool("debug", true, "debug mode, print log messages")
 var debugEvents = flag.Bool("debugevents", false, "print received events")
 var showVersion = flag.Bool("version", false, "display version and exit")
 var dumpCache = flag.Bool("dumpCache", false, "dump contents of cache to stdout")
-var cleanCache = flag.Bool("cleanCache", false, "remove old cache entries with state OK")
+var cleanCache = flag.Bool("cleanCache", false, "remove stale cache entries and exit")
+var staleCache = flag.Bool("staleCache", false, "display cache entries with no corresponding ticket and exit")
 
 // openEventStreamer connects to the icinga2 API, exponentially backing off when the connection fails
 func openEventStreamer(retries int, icingaClient *icinga2.Client, queue string, filter string, streamtype ...event.StreamType) (io.Reader, error) {
@@ -93,8 +94,36 @@ func main() {
 		os.Exit(0)
 	}
 
+	// we may want to have no rtClient for debugging.
+	var rtClient *rt.Client
+	if conf.RT != (rtConfig{}) {
+		rtClient, err = rt.NewClient(conf.RT.URL, conf.RT.User, conf.RT.Password, conf.RT.Insecure)
+		if err != nil {
+			log.Fatal("FATAL: init:", err)
+		}
+	} else {
+		if *debug {
+			log.Println("init: using dummy rt client")
+		}
+		rtClient = rt.NewDummyClient()
+	}
+
+	if *staleCache {
+		_, err := eventCache.stale(rtClient)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		os.Exit(0)
+	}
+
 	if *cleanCache {
-		err := eventCache.clean()
+		staleEvents, err := eventCache.stale(rtClient)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = eventCache.clean(staleEvents)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,20 +139,6 @@ func main() {
 	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
-	}
-
-	// we may want to have no rtClient for debugging.
-	var rtClient *rt.Client
-	if conf.RT != (rtConfig{}) {
-		rtClient, err = rt.NewClient(conf.RT.URL, conf.RT.User, conf.RT.Password, conf.RT.Insecure)
-		if err != nil {
-			log.Fatal("FATAL: init:", err)
-		}
-	} else {
-		if *debug {
-			log.Println("init: using dummy rt client")
-		}
-		rtClient = rt.NewDummyClient()
 	}
 
 	pf := newPermitFunc(conf.Ticket.PermitFunction)

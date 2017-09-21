@@ -9,6 +9,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/bytemine/go-icinga2/event"
+	"github.com/bytemine/icinga2rt/rt"
 )
 
 const eventBucketName = "events"
@@ -168,8 +169,8 @@ func (c *cache) dump() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (c *cache) clean() error {
-	okEvents := [][]byte{}
+func (c *cache) stale(rtClient *rt.Client) ([][]byte, error) {
+	staleEvents := [][]byte{}
 
 	err := c.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(eventBucketName))
@@ -185,8 +186,18 @@ func (c *cache) clean() error {
 				return err
 			}
 
+			// remove events with state OK
 			if et.Event.CheckResult.State == event.StateOK {
-				okEvents = append(okEvents, k)
+				log.Printf("stale event %v/%v: state OK", et.Event.Host, et.Event.Service)
+				staleEvents = append(staleEvents, k)
+				continue
+			}
+
+			_, err = rtClient.Ticket(et.TicketID)
+			// remove events with no found ticket
+			if err != nil {
+				log.Printf("stale event %v/%v: missing ticket %v", et.Event.Host, et.Event.Service, et.TicketID)
+				staleEvents = append(staleEvents, k)
 			}
 
 		}
@@ -194,13 +205,17 @@ func (c *cache) clean() error {
 		return nil
 	})
 
-	err = c.DB.Update(func(tx *bolt.Tx) error {
+	return staleEvents, err
+}
+
+func (c *cache) clean(staleEvents [][]byte) error {
+	err := c.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(eventBucketName))
 		if b == nil {
 			return fmt.Errorf("event bucket doesn't exist")
 		}
 
-		for _, v := range okEvents {
+		for _, v := range staleEvents {
 			err := b.Delete(v)
 			if err != nil {
 				return err
