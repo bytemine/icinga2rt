@@ -97,13 +97,15 @@ func (t *ticketUpdater) newEvent(e *event.Notification) error {
 }
 
 func (t *ticketUpdater) oldEvent(newEvent *event.Notification, oldEvent *event.Notification, ticketID int) error {
-	// if old ticket has status "deleted", create a new one to prevent reopening tickets.
-	// we don't need to delete the cache entry as it will be overwritten in createTicket.
+	// if old ticket isn't existing anymore, create a new ticket.
 	oldTicket, err := t.rtClient.Ticket(ticketID)
 	if err != nil {
-		return err
+		log.Printf("ticket updater: %v/%v: old ticket %v doesn't exist anymore", newEvent.Host, newEvent.Service, ticketID)
+		return t.createTicket(newEvent)
 	}
 
+	// if old ticket has status "deleted", create a new one to prevent reopening tickets.
+	// we don't need to delete the cache entry as it will be overwritten in createTicket.
 	if oldTicket.Status == "deleted" {
 		log.Printf("ticket updater: %v/%v: not reusing ticket %v with status %s", newEvent.Host, newEvent.Service, oldTicket.ID, oldTicket.Status)
 		return t.createTicket(newEvent)
