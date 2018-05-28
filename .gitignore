@@ -6,3 +6,4 @@ appveyor.yml
 Makefile
 icinga2rt
 vendor
+_vendor*
