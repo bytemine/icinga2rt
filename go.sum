@@ -1,7 +1,3 @@
-github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
-github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
-github.com/bytemine/go-icinga2 v0.0.0-20161118172637-a1577059e44e h1:/7JIMVpPjiEokvKOB8ruWrHI6wuGPoaFlJlc/p8/AA8=
-github.com/bytemine/go-icinga2 v0.0.0-20161118172637-a1577059e44e/go.mod h1:EcdGvd8AQNKmTsgE5oqmWk0COr6UU9CS4QQBb3HUqs8=
 github.com/bytemine/go-icinga2 v0.0.1 h1:l7awl+D8ljhe9yJcfVrwt3T3cvuYwwiX1QEn+i5EiMQ=
 github.com/bytemine/go-icinga2 v0.0.1/go.mod h1:EcdGvd8AQNKmTsgE5oqmWk0COr6UU9CS4QQBb3HUqs8=
 github.com/etcd-io/bbolt v1.3.0 h1:ec0U3x11Mk69A8YwQyZEhNaUqHkQSv2gDR3Bioz5DfU=
