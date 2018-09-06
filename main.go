@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/bytemine/go-icinga2"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/bytemine/icinga2rt/rt"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/bytemine/go-icinga2"
+	"github.com/bytemine/go-icinga2/event"
+	"github.com/bytemine/icinga2rt/rt"
 )
 
 const version = "0.0.12"
@@ -104,9 +105,7 @@ func main() {
 		rtClient = rt.NewDummyClient()
 	}
 
-	pf := newPermitFunc(conf.Ticket.PermitFunction)
-
-	tu := newTicketUpdater(eventCache, rtClient, pf, conf.Ticket.Nobody, conf.Ticket.Queue)
+	tu := newTicketUpdater(eventCache, rtClient, conf.Ticket.Mappings, conf.Ticket.Nobody, conf.Ticket.Queue)
 
 	dec := json.NewDecoder(r)
 	for {
@@ -136,7 +135,7 @@ func main() {
 			log.Println("main: event stream:", string(buf))
 		}
 
-		err = tu.updateTicket(&x)
+		err = tu.update(&x)
 		if err != nil {
 			log.Fatal("FATAL: main:", err)
 		}

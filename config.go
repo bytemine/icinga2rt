@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bytemine/go-icinga2/event"
 	"os"
+
+	"github.com/bytemine/go-icinga2/event"
 )
 
 type icingaConfig struct {
@@ -27,9 +28,9 @@ type cacheConfig struct {
 }
 
 type ticketConfig struct {
-	PermitFunction []event.State
-	Nobody         string
-	Queue          string
+	Mappings []Mapping
+	Nobody   string
+	Queue    string
 }
 
 type config struct {
@@ -57,11 +58,97 @@ var defaultConfig = config{
 		File: "/var/lib/icinga2rt/icinga2rt.bolt",
 	},
 	Ticket: ticketConfig{
-		PermitFunction: []event.State{
-			event.StateOK,
-			event.StateWarning,
-			event.StateCritical,
-			event.StateUnknown,
+		Mappings: []Mapping{
+			Mapping{
+				Condition: Condition{
+					State:    "OK",
+					state:    event.StateOK,
+					Existing: false,
+					Owned:    false,
+				},
+				Action: "ignore",
+				action: (*ticketUpdater).ignore,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "OK",
+					state:    event.StateOK,
+					Existing: true,
+					Owned:    false,
+				},
+				Action: "delete",
+				action: (*ticketUpdater).delete,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "OK",
+					state:    event.StateOK,
+					Existing: true,
+					Owned:    true,
+				},
+				Action: "comment",
+				action: (*ticketUpdater).comment,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "WARNING",
+					state:    event.StateWarning,
+					Existing: false,
+					Owned:    false,
+				},
+				Action: "create",
+				action: (*ticketUpdater).create,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "WARNING",
+					state:    event.StateWarning,
+					Existing: true,
+					Owned:    false,
+				},
+				Action: "comment",
+				action: (*ticketUpdater).comment,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "CRITICAL",
+					state:    event.StateCritical,
+					Existing: false,
+					Owned:    false,
+				},
+				Action: "create",
+				action: (*ticketUpdater).create,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "CRITICAL",
+					state:    event.StateCritical,
+					Existing: true,
+					Owned:    false,
+				},
+				Action: "comment",
+				action: (*ticketUpdater).create,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "UNKNOWN",
+					state:    event.StateUnknown,
+					Existing: false,
+					Owned:    false,
+				},
+				Action: "create",
+				action: (*ticketUpdater).create,
+			},
+			Mapping{
+				Condition: Condition{
+					State:    "UNKNOWN",
+					state:    event.StateUnknown,
+					Existing: true,
+					Owned:    false,
+				},
+				Action: "comment",
+				action: (*ticketUpdater).create,
+			},
 		},
 		Nobody: "Nobody",
 		Queue:  "general",
@@ -89,8 +176,8 @@ func checkConfig(conf *config) error {
 		return fmt.Errorf("Ticket.Nobody must be set.")
 	}
 
-	if conf.Ticket.PermitFunction == nil || len(conf.Ticket.PermitFunction) == 0 {
-		return fmt.Errorf("Ticket.PermitFunction must be set.")
+	if conf.Ticket.Mappings == nil || len(conf.Ticket.Mappings) == 0 {
+		return fmt.Errorf("Ticket.Mappings must be set.")
 	}
 
 	if conf.Cache.File == "" {

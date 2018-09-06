@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/boltdb/bolt"
 	"hash/fnv"
 	"log"
+
+	"github.com/bytemine/go-icinga2/event"
+	bolt "github.com/etcd-io/bbolt" // bbolt is the continuation of bolt and for now is usable as drop in replacement
 )
 
 const eventBucketName = "events"
@@ -37,6 +38,12 @@ func openCache(path string) (*cache, error) {
 	return &cache{DB: db}, nil
 }
 
+// eventTicket is a helper struct for saving to bolt
+type eventTicket struct {
+	Event    *event.Notification
+	TicketID int
+}
+
 func decodeEventTicket(x []byte) (*eventTicket, error) {
 	var et eventTicket
 	buf := bytes.NewBuffer(x)
@@ -61,7 +68,7 @@ func encodeEventTicket(et *eventTicket) ([]byte, error) {
 	return x.Bytes(), nil
 }
 
-func (c *cache) getEventTicket(e *event.Notification) (*eventTicket, error) {
+func (c *cache) getEventTicket(e *event.Notification) (*event.Notification, int, error) {
 	if *debug {
 		log.Printf("cache: get event for %v/%v", e.Host, e.Service)
 	}
@@ -91,10 +98,10 @@ func (c *cache) getEventTicket(e *event.Notification) (*eventTicket, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
-	return et, nil
+	return et.Event, et.TicketID, nil
 }
 
 func (c *cache) updateEventTicket(e *event.Notification, ticketID int) error {
