@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/bytemine/go-icinga2"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/bytemine/icinga2rt/rt"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/bytemine/go-icinga2"
+	"github.com/bytemine/go-icinga2/event"
+	"github.com/bytemine/icinga2rt/rt"
 )
 
 const version = "0.0.12"
@@ -21,6 +22,8 @@ var configFile = flag.String("config", "/etc/bytemine/icinga2rt.json", "configur
 var debug = flag.Bool("debug", true, "debug mode, print log messages")
 var debugEvents = flag.Bool("debugevents", false, "print received events")
 var showVersion = flag.Bool("version", false, "display version and exit")
+var exportCache = flag.String("exportCache", "", "export contents of cache to this file, and quit")
+var importCache = flag.String("importCache", "", "import contents of cache from this file, and quit")
 
 // openEventStreamer connects to the icinga2 API, exponentially backing off when the connection fails
 func openEventStreamer(retries int, icingaClient *icinga2.Client, queue string, filter string, streamtype ...event.StreamType) (io.Reader, error) {
@@ -75,19 +78,49 @@ func main() {
 		log.Fatal("FATAL: init:", err)
 	}
 
-	icingaClient, err := icinga2.NewClient(conf.Icinga.URL, conf.Icinga.User, conf.Icinga.Password, conf.Icinga.Insecure)
-	if err != nil {
-		log.Fatal("FATAL: init:", err)
-	}
-
-	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
-	if err != nil {
-		log.Fatal("FATAL: init:", err)
-	}
-
 	eventCache, err := openCache(conf.Cache.File)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
+	}
+
+	if *exportCache != "" {
+		var f io.WriteCloser
+		if *exportCache == "-" {
+			f = os.Stdout
+		} else {
+			f, err = os.Create(*exportCache)
+			if err != nil {
+				log.Fatal("FATAL: export:", err)
+			}
+		}
+		_, err := eventCache.WriteTo(f)
+		if err != nil {
+			log.Fatal("FATAL: export:", err)
+		}
+		f.Close()
+		eventCache.Close()
+
+		os.Exit(0)
+	}
+
+	if *importCache != "" {
+		var f io.ReadCloser
+		if *importCache == "-" {
+			f = os.Stdin
+		} else {
+			f, err = os.Open(*importCache)
+			if err != nil {
+				log.Fatal("FATAL: import:", err)
+			}
+		}
+		_, err := eventCache.ReadFrom(f)
+		if err != nil {
+			log.Fatal("FATAL: import:", err)
+		}
+		f.Close()
+		eventCache.Close()
+
+		os.Exit(0)
 	}
 
 	// we may want to have no rtClient for debugging.
@@ -102,6 +135,16 @@ func main() {
 			log.Println("init: using dummy rt client")
 		}
 		rtClient = rt.NewDummyClient()
+	}
+
+	icingaClient, err := icinga2.NewClient(conf.Icinga.URL, conf.Icinga.User, conf.Icinga.Password, conf.Icinga.Insecure)
+	if err != nil {
+		log.Fatal("FATAL: init:", err)
+	}
+
+	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
+	if err != nil {
+		log.Fatal("FATAL: init:", err)
 	}
 
 	pf := newPermitFunc(conf.Ticket.PermitFunction)

@@ -3,10 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/bytemine/go-icinga2/event"
-	"github.com/boltdb/bolt"
+	"encoding/json"
 	"hash/fnv"
+	"io"
 	"log"
+
+	"github.com/boltdb/bolt"
+	"github.com/bytemine/go-icinga2/event"
 )
 
 const eventBucketName = "events"
@@ -138,4 +141,69 @@ func (c *cache) deleteEventTicket(e *event.Notification) error {
 	})
 
 	return err
+}
+
+func (c *cache) WriteTo(w io.Writer) (int64, error) {
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		eventBucket := tx.Bucket([]byte(eventBucketName))
+		if eventBucket == nil {
+			return nil
+		}
+
+		enc := json.NewEncoder(w)
+
+		c := eventBucket.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			et, err := decodeEventTicket(v)
+			if err != nil {
+				return err
+			}
+			err = enc.Encode(et)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return 0, err
+}
+
+func (c *cache) ReadFrom(r io.Reader) (int64, error) {
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		eventBucket, err := tx.CreateBucketIfNotExists([]byte(eventBucketName))
+		if err != nil {
+			return err
+		}
+
+		et := &eventTicket{}
+		dec := json.NewDecoder(r)
+		for {
+			err := dec.Decode(et)
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
+
+			log.Printf("%#v", et)
+
+			x, err := encodeEventTicket(et)
+			if err != nil {
+				return err
+			}
+
+			eID := eventID(et.Event)
+			err = eventBucket.Put(eID, x)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return 0, err
 }
