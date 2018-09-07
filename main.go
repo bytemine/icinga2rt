@@ -19,7 +19,7 @@ const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
 var configFile = flag.String("config", "/etc/bytemine/icinga2rt.json", "configuration file")
-var debug = flag.Bool("debug", true, "debug mode, print log messages")
+var debug = flag.Bool("debug", false, "debug mode, print log messages")
 var debugEvents = flag.Bool("debugevents", false, "print received events")
 var showVersion = flag.Bool("version", false, "display version and exit")
 
