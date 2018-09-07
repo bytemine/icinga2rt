@@ -198,6 +198,7 @@ type Client struct {
 	password           string
 	insecureSkipVerify bool
 	dummy              bool
+	dummyTickets       []Ticket
 }
 
 // NewClient prepares a Client for usage.
@@ -210,12 +211,15 @@ func NewClient(rtURL string, user, password string, insecureSkipVerify bool) (*C
 }
 
 func NewDummyClient() *Client {
-	return &Client{dummy: true}
+	return &Client{dummy: true, dummyTickets: make([]Ticket, 0)}
 }
 
 func (c *Client) Ticket(id int) (*Ticket, error) {
 	if c.dummy {
-		return &Ticket{ID: 1234, Subject: "dummy ticket", Owner: "Nobody"}, nil
+		if len(c.dummyTickets) > id {
+			return &c.dummyTickets[id], nil
+		}
+		return nil, fmt.Errorf("no ticket")
 	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 
@@ -247,7 +251,9 @@ func (c *Client) Ticket(id int) (*Ticket, error) {
 
 func (c *Client) NewTicket(ticket *Ticket) (*Ticket, error) {
 	if c.dummy {
-		return &Ticket{ID: 1234, Subject: "dummy ticket"}, nil
+		ticket.ID = len(c.dummyTickets)
+		c.dummyTickets = append(c.dummyTickets, *ticket)
+		return ticket, nil
 	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 	query := url.Values{}
@@ -298,7 +304,8 @@ func (c *Client) NewTicket(ticket *Ticket) (*Ticket, error) {
 
 func (c *Client) UpdateTicket(ticket *Ticket) (*Ticket, error) {
 	if c.dummy {
-		return &Ticket{ID: 1234, Subject: "dummy ticket"}, nil
+		c.dummyTickets[ticket.ID] = *ticket
+		return ticket, nil
 	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 	query := url.Values{}
