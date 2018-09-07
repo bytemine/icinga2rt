@@ -83,12 +83,12 @@ func TestGetEventTicket(t *testing.T) {
 		t.Error()
 	}
 
-	e, ticketId, err := cache.getEventTicket(testEvent)
+	e, ticketID, err := cache.getEventTicket(testEvent)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketId != 1234 {
+	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketID != 1234 {
 		t.Fail()
 	}
 }
@@ -100,12 +100,12 @@ func TestGetNotExistingEventTicket(t *testing.T) {
 	}
 	defer removeCache(cache, path)
 
-	e, ticketId, err := cache.getEventTicket(testEvent)
+	e, ticketID, err := cache.getEventTicket(testEvent)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if e != nil || ticketId != -1 {
+	if e != nil || ticketID != -1 {
 		t.Fail()
 	}
 }
@@ -122,12 +122,12 @@ func TestUpdateEventTicket(t *testing.T) {
 		t.Error()
 	}
 
-	e, ticketId, err := cache.getEventTicket(testEvent)
+	e, ticketID, err := cache.getEventTicket(testEvent)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketId != 1234 {
+	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketID != 1234 {
 		t.Fail()
 	}
 
@@ -136,12 +136,12 @@ func TestUpdateEventTicket(t *testing.T) {
 		t.Error()
 	}
 
-	e, ticketId, err = cache.getEventTicket(testEvent)
+	e, ticketID, err = cache.getEventTicket(testEvent)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketId != 4321 {
+	if e.Host != testEvent.Host || e.Service != testEvent.Service || ticketID != 4321 {
 		t.Fail()
 	}
 }
@@ -163,12 +163,12 @@ func TestDeleteEventTicket(t *testing.T) {
 		t.Error()
 	}
 
-	e, ticketId, err := cache.getEventTicket(testEvent)
+	e, ticketID, err := cache.getEventTicket(testEvent)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if e != nil || ticketId != -1 {
+	if e != nil || ticketID != -1 {
 		t.Fail()
 	}
 }
