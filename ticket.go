@@ -18,6 +18,7 @@ const (
 
 type actionFunc func(*ticketUpdater, *event.Notification) error
 
+// Condition describes the properties an event must have to match.
 type Condition struct {
 	state    event.State
 	existing bool
@@ -30,6 +31,7 @@ type jsonCondition struct {
 	Owned    bool
 }
 
+// UnmarshalJSON unmarshals JSON into a condition.
 func (c *Condition) UnmarshalJSON(data []byte) error {
 	var x jsonCondition
 	err := json.Unmarshal(data, &x)
@@ -56,6 +58,7 @@ func (c *Condition) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a Condition to JSON.
 func (c Condition) MarshalJSON() ([]byte, error) {
 	x := jsonCondition{State: c.state.String(), Existing: c.existing, Owned: c.owned}
 
@@ -67,6 +70,7 @@ func (c Condition) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
+// Mapping describes how an event matching Condition should be acted upon.
 type Mapping struct {
 	condition  Condition
 	action     actionFunc
@@ -78,6 +82,7 @@ type jsonMapping struct {
 	Action    string
 }
 
+// UnmarshalJSON unmarshals a Mapping from JSON.
 func (m *Mapping) UnmarshalJSON(data []byte) error {
 	var x jsonMapping
 	err := json.Unmarshal(data, &x)
@@ -103,6 +108,7 @@ func (m *Mapping) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals a Mapping to JSON.
 func (m Mapping) MarshalJSON() ([]byte, error) {
 	x := jsonMapping{Condition: m.condition, Action: m.actionName}
 
