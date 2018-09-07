@@ -19,19 +19,25 @@ const (
 type actionFunc func(*ticketUpdater, *event.Notification) error
 
 type Condition struct {
-	State    string
 	state    event.State
+	existing bool
+	owned    bool
+}
+
+type jsonCondition struct {
+	State    string
 	Existing bool
 	Owned    bool
 }
 
 func (c *Condition) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, c)
+	var x jsonCondition
+	err := json.Unmarshal(data, &x)
 	if err != nil {
 		return err
 	}
 
-	switch c.State {
+	switch x.State {
 	case "OK":
 		c.state = event.StateOK
 	case "WARNING":
@@ -41,19 +47,19 @@ func (c *Condition) UnmarshalJSON(data []byte) error {
 	case "UNKNOWN":
 		c.state = event.StateUnknown
 	default:
-		return fmt.Errorf("unknown state: %v", c.State)
+		return fmt.Errorf("unknown state: \"%v\"", x.State)
 	}
+
+	c.existing = x.Existing
+	c.owned = x.Owned
 
 	return nil
 }
 
-func (c *Condition) MarshalJSON() ([]byte, error) {
-	c.State = c.state.String()
-	if c.State == "" {
-		return nil, fmt.Errorf("unknown state: %v", float64(c.state))
-	}
+func (c Condition) MarshalJSON() ([]byte, error) {
+	x := jsonCondition{State: c.state.String(), Existing: c.existing, Owned: c.owned}
 
-	b, err := json.Marshal(c)
+	b, err := json.Marshal(x)
 	if err != nil {
 		return nil, err
 	}
@@ -62,18 +68,24 @@ func (c *Condition) MarshalJSON() ([]byte, error) {
 }
 
 type Mapping struct {
+	condition  Condition
+	action     actionFunc
+	actionName string // helper for marshalling as we can't compare functions
+}
+
+type jsonMapping struct {
 	Condition Condition
 	Action    string
-	action    actionFunc // hidden field, is filled by custom unmarshalling function
 }
 
 func (m *Mapping) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, m)
+	var x jsonMapping
+	err := json.Unmarshal(data, &x)
 	if err != nil {
 		return err
 	}
 
-	switch m.Action {
+	switch x.Action {
 	case actionStringDelete:
 		m.action = (*ticketUpdater).delete
 	case actionStringComment:
@@ -83,10 +95,23 @@ func (m *Mapping) UnmarshalJSON(data []byte) error {
 	case actionStringIgnore:
 		m.action = (*ticketUpdater).ignore
 	default:
-		return fmt.Errorf("unknown action: %v", m.Action)
+		return fmt.Errorf("unknown action: %v", m.action)
 	}
 
+	m.condition = x.Condition
+
 	return nil
+}
+
+func (m Mapping) MarshalJSON() ([]byte, error) {
+	x := jsonMapping{Condition: m.condition, Action: m.actionName}
+
+	b, err := json.Marshal(x)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
 
 type ticketUpdater struct {
@@ -128,18 +153,17 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 	for _, v := range t.mappings {
 		x := Condition{
 			state:    e.CheckResult.State,
-			State:    v.Condition.State,
-			Existing: existing,
-			Owned:    owned,
+			existing: existing,
+			owned:    owned,
 		}
 
 		if *debug {
-			log.Printf("ticket updater: matching\nCondition: %#v\nEvent:     %#v", v.Condition, x)
+			log.Printf("ticket updater: matching\nCondition: %#v\nEvent:     %#v", v.condition, x)
 		}
 
-		if v.Condition == x {
+		if v.condition == x {
 			if *debug {
-				log.Printf("ticket updater: matched %v", v.Action)
+				log.Printf("ticket updater: matched %v", v.action)
 			}
 
 			return v.action(t, e)

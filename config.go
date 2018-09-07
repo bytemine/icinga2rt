@@ -60,94 +60,85 @@ var defaultConfig = config{
 	Ticket: ticketConfig{
 		Mappings: []Mapping{
 			Mapping{
-				Condition: Condition{
-					State:    "OK",
+				condition: Condition{
 					state:    event.StateOK,
-					Existing: false,
-					Owned:    false,
+					existing: false,
+					owned:    false,
 				},
-				Action: "ignore",
-				action: (*ticketUpdater).ignore,
+				actionName: "ignore",
+				action:     (*ticketUpdater).ignore,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "OK",
+				condition: Condition{
 					state:    event.StateOK,
-					Existing: true,
-					Owned:    false,
+					existing: true,
+					owned:    false,
 				},
-				Action: "delete",
-				action: (*ticketUpdater).delete,
+				actionName: "delete",
+				action:     (*ticketUpdater).delete,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "OK",
+				condition: Condition{
 					state:    event.StateOK,
-					Existing: true,
-					Owned:    true,
+					existing: true,
+					owned:    true,
 				},
-				Action: "comment",
-				action: (*ticketUpdater).comment,
+				actionName: "comment",
+				action:     (*ticketUpdater).comment,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "WARNING",
+				condition: Condition{
 					state:    event.StateWarning,
-					Existing: false,
-					Owned:    false,
+					existing: false,
+					owned:    false,
 				},
-				Action: "create",
-				action: (*ticketUpdater).create,
+				actionName: "create",
+				action:     (*ticketUpdater).create,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "WARNING",
+				condition: Condition{
 					state:    event.StateWarning,
-					Existing: true,
-					Owned:    false,
+					existing: true,
+					owned:    false,
 				},
-				Action: "comment",
-				action: (*ticketUpdater).comment,
+				actionName: "comment",
+				action:     (*ticketUpdater).comment,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "CRITICAL",
+				condition: Condition{
 					state:    event.StateCritical,
-					Existing: false,
-					Owned:    false,
+					existing: false,
+					owned:    false,
 				},
-				Action: "create",
-				action: (*ticketUpdater).create,
+				actionName: "create",
+				action:     (*ticketUpdater).create,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "CRITICAL",
+				condition: Condition{
 					state:    event.StateCritical,
-					Existing: true,
-					Owned:    false,
+					existing: true,
+					owned:    false,
 				},
-				Action: "comment",
-				action: (*ticketUpdater).create,
+				actionName: "comment",
+				action:     (*ticketUpdater).create,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "UNKNOWN",
+				condition: Condition{
 					state:    event.StateUnknown,
-					Existing: false,
-					Owned:    false,
+					existing: false,
+					owned:    false,
 				},
-				Action: "create",
-				action: (*ticketUpdater).create,
+				actionName: "create",
+				action:     (*ticketUpdater).create,
 			},
 			Mapping{
-				Condition: Condition{
-					State:    "UNKNOWN",
+				condition: Condition{
 					state:    event.StateUnknown,
-					Existing: true,
-					Owned:    false,
+					existing: true,
+					owned:    false,
 				},
-				Action: "comment",
-				action: (*ticketUpdater).create,
+				actionName: "comment",
+				action:     (*ticketUpdater).create,
 			},
 		},
 		Nobody: "Nobody",
