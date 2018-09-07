@@ -101,6 +101,10 @@ func (c *cache) getEventTicket(e *event.Notification) (*event.Notification, int,
 		return nil, -1, err
 	}
 
+	if et == nil {
+		return nil, -1, nil
+	}
+
 	return et.Event, et.TicketID, nil
 }
 
