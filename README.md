@@ -3,96 +3,153 @@
 icinga2rt is a tool which automatically creates, updates and closes request tracker tickets on status changes of
 hosts or services monitored by icinga2.
 
-## commandline arguments
+## Commandline Arguments
 
 	-config string
-			configuration file (default "/etc/bytemine/icinga2rt.json")
+		configuration file (default "/etc/bytemine/icinga2rt.json")
 	-debug
-			debug mode, print log messages (default true)
+		debug mode, print log messages
 	-debugevents
-			print received events
+		print received events
 	-example
-			write example configuration file as icinga2rt.json.example to current directory
+		write example configuration file as icinga2rt.json.example to current directory
+	-exportCache string
+		export contents of cache to this file, and quit
+	-importCache string
+		import contents of cache from this file, and quit
 	-version
-			display version and exit
+		display version and exit
 
-## configuration
+## Configuration
 
 A configuration is expected to be in `/etc/bytemine/icinga2rt.json`, other paths can be used with the `-config` switch.
 The `icinga2rt.json.example` file is a good starting point for a config. 
 
-### explained example configuration
+### Explained Example Configuration
 
-If parts of this are used, comments must be removed. Using the `-example` switch is recommended.
+If parts of this are used, comments (//...) must be removed. Using the `-example` switch is recommended.
 
 	{
-		// Icinga2 API configuration
 		"Icinga": {
-			// URL of the Icinga2 API
-			"URL": "https://monitoring.example.com:5665",
-			// User and password for API access
-			"User": "root",
-			"Password": "secret",
-			// Allow invalid SSL certificate chains (optional, if not specified defaults to false)
-			"Insecure": true,
-			// Try this many times to (re)connect before exiting, using exponential backoff (wait 1, 2, …, 2^n seconds)
-			"Retries": 5
+			"URL": "https://monitoring.example.com:5665", // URL to Icinga2 API
+			"User": "root", // Icinga2 API user
+			"Password": "secret", // Icinga2 API password
+			"Insecure": true, // Ignore SSL certificate errors
+			"Retries": 5 // Maximum tries for connecting to Icinga2 API
 		},
-		// Request Tracker API configuration
 		"RT": {
-			// URL of the RT API
-			"URL": "https://support.example.com",
-			// RT user and password
-			"User": "apiuser",
-			"Password": "secret",
-			// Allow invalid SSL certificate chains (optional, if not specified defaults to false)
-			"Insecure": true
+			"URL": "https://support.example.com", // Request Tracker base URL
+			"User": "apiuser", // Request Tracker API user
+			"Password": "secret", // Request Tracker password
+			"Insecure": true // Ignore SSL certificate errors
 		},
-		// Event-ticket matching cache configuration
 		"Cache": {
-			// Path to the database file
-			"File": "/var/lib/icinga2rt/icinga2rt.bolt"
+			"File": "/var/lib/icinga2rt/icinga2rt.bolt" // Path to cache file storing event-ticket associations
 		},
-		// Ticket creation and updating configuration
 		"Ticket": {
-			// PermitFunction configures which events are acted upon
-			// It is an array of { "State" : State, "StateType" : StateType } objects,
-			// each defining a permitted combination on which an event is acted upon.
-			// You should always define { "State": 0, "StateType": 1 } and
-			// { "State": 0, "StateType": 0 } to allow OK events. The settings below
-			// allow OK SOFT, OK HARD, WARNING HARD, CRITICAL HARD and UNKNOWN HARD 
-			"PermitFunction": [
+			"Mappings": [ // Mappings to decide the action for events. See mappings section further down.
 				{
-					"State": 0,
-					"StateType": 1
+					"Condition": {
+						"State": "OK",
+						"Existing": false,
+						"Owned": false
+					},
+					"Action": "ignore"
 				},
 				{
-					"State": 0,
-					"StateType": 0
+					"Condition": {
+						"State": "OK",
+						"Existing": true,
+						"Owned": false
+					},
+					"Action": "delete"
 				},
 				{
-					"State": 1,
-					"StateType": 1
+					"Condition": {
+						"State": "OK",
+						"Existing": true,
+						"Owned": true
+					},
+					"Action": "comment"
 				},
 				{
-					"State": 2,
-					"StateType": 1
+					"Condition": {
+						"State": "WARNING",
+						"Existing": false,
+						"Owned": false
+					},
+					"Action": "create"
 				},
 				{
-					"State": 3,
-					"StateType": 1
+					"Condition": {
+						"State": "WARNING",
+						"Existing": true,
+						"Owned": false
+					},
+					"Action": "comment"
+				},
+				{
+					"Condition": {
+						"State": "CRITICAL",
+						"Existing": false,
+						"Owned": false
+					},
+					"Action": "create"
+				},
+				{
+					"Condition": {
+						"State": "CRITICAL",
+						"Existing": true,
+						"Owned": false
+					},
+					"Action": "comment"
+				},
+				{
+					"Condition": {
+						"State": "UNKOWN",
+						"Existing": false,
+						"Owned": false
+					},
+					"Action": "create"
+				},
+				{
+					"Condition": {
+						"State": "UNKOWN",
+						"Existing": true,
+						"Owned": false
+					},
+					"Action": "comment"
 				}
 			],
-			// Nobody user to set as owner in RT
-			"Nobody": "Nobody",
-			// Queue to use for new tickets in RT
-			"Queue": "general"
+			"Nobody": "Nobody", // A Request Tracker ticket is unowned if owned by this user.
+			"Queue": "general", // Request Tracker queue where tickets are created
+			"ClosedStatus": [ // List of Request Tracker stati for which tickets are considered to be closed.
+				"done",
+				"resolved",
+				"deleted"
+			]
 		}
 	}
 
-## running
+### Mappings
 
-### upstart
+A mapping sets the action if an event (and it's associated ticket) match a condition. A condition
+consists of
+
+- `State`: State of the Icinga2 event. String, one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK`. 
+- `Existing`: If a Request Tracker ticket is existing for this event. Either `true` or `false`.
+- `Owned`: If the Request Tracker ticket is owned by someone else than the nobody-user. String of the username.
+
+The action can be one of 
+
+- `create`: Create a new ticket for this event.
+- `comment`: Comment an existing ticket for this event.
+- `delete`: Delete an existing ticket.
+- `ignore`: Ignore this event.
+
+## Running
+
+### Upstart
 
 	description     "bytemine Icinga2 RT ticket creator"
 
