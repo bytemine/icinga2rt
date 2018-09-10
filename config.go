@@ -177,6 +177,16 @@ func checkConfig(conf *config) error {
 		return fmt.Errorf("Ticket.Mappings must be set.")
 	}
 
+	for _, v := range conf.Ticket.Mappings {
+		if !v.condition.existing && v.actionName == actionStringDelete {
+			return fmt.Errorf("Condition \"not existing\" and action \"delete\" makes no sense.")
+		}
+
+		if !v.condition.existing && v.actionName == actionStringComment {
+			return fmt.Errorf("Condition \"not existing\" and action \"comment\" makes no sense.")
+		}
+	}
+
 	if conf.Ticket.ClosedStatus == nil || len(conf.Ticket.ClosedStatus) == 0 {
 		return fmt.Errorf("Ticket.ClosedStatus must be set.")
 	}
