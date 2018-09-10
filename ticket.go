@@ -90,6 +90,8 @@ func (m *Mapping) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	m.actionName = x.Action
+
 	switch x.Action {
 	case actionStringDelete:
 		m.action = (*ticketUpdater).delete
