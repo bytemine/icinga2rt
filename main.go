@@ -53,6 +53,14 @@ func openEventStreamer(retries int, icingaClient *icinga2.Client, queue string, 
 	return nil, err
 }
 
+// rtClient interface enables to use a dummy client for testing.
+type rtClient interface {
+	Ticket(int) (*rt.Ticket, error)
+	NewTicket(*rt.Ticket) (*rt.Ticket, error)
+	UpdateTicket(*rt.Ticket) (*rt.Ticket, error)
+	CommentTicket(int, string) error
+}
+
 func main() {
 	flag.Parse()
 
@@ -123,21 +131,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	// we may want to have no rtClient for debugging.
-	var rtClient *rt.Client
-	if conf.RT != (rtConfig{}) {
-		rtClient, err = rt.NewClient(conf.RT.URL, conf.RT.User, conf.RT.Password, conf.RT.Insecure)
-		if err != nil {
-			log.Fatal("FATAL: init:", err)
-		}
-	} else {
-		if *debug {
-			log.Println("init: using dummy rt client")
-		}
-		rtClient = rt.NewDummyClient()
+	rtClient, err := rt.NewClient(conf.RT.URL, conf.RT.User, conf.RT.Password, conf.RT.Insecure)
+	if err != nil {
+		log.Fatal("FATAL: init:", err)
 	}
 
-	tu := newTicketUpdater(eventCache, rtClient, conf.Ticket.Mappings, conf.Ticket.Nobody, conf.Ticket.Queue)
+	tu := newTicketUpdater(eventCache, rtClient, conf.Ticket.Mappings, conf.Ticket.Nobody, conf.Ticket.Queue, conf.Ticket.ClosedStatus)
 
 	icingaClient, err := icinga2.NewClient(conf.Icinga.URL, conf.Icinga.User, conf.Icinga.Password, conf.Icinga.Insecure)
 	if err != nil {

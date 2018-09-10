@@ -197,8 +197,6 @@ type Client struct {
 	user               string
 	password           string
 	insecureSkipVerify bool
-	dummy              bool
-	dummyTickets       []Ticket
 }
 
 // NewClient prepares a Client for usage.
@@ -210,17 +208,7 @@ func NewClient(rtURL string, user, password string, insecureSkipVerify bool) (*C
 	return &Client{url: x, user: user, password: password, insecureSkipVerify: insecureSkipVerify}, nil
 }
 
-func NewDummyClient() *Client {
-	return &Client{dummy: true, dummyTickets: make([]Ticket, 0)}
-}
-
 func (c *Client) Ticket(id int) (*Ticket, error) {
-	if c.dummy {
-		if len(c.dummyTickets) > id {
-			return &c.dummyTickets[id], nil
-		}
-		return nil, fmt.Errorf("no ticket")
-	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 
 	query := url.Values{}
@@ -250,11 +238,6 @@ func (c *Client) Ticket(id int) (*Ticket, error) {
 }
 
 func (c *Client) NewTicket(ticket *Ticket) (*Ticket, error) {
-	if c.dummy {
-		ticket.ID = len(c.dummyTickets)
-		c.dummyTickets = append(c.dummyTickets, *ticket)
-		return ticket, nil
-	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 	query := url.Values{}
 	query.Set("user", c.user)
@@ -303,10 +286,6 @@ func (c *Client) NewTicket(ticket *Ticket) (*Ticket, error) {
 }
 
 func (c *Client) UpdateTicket(ticket *Ticket) (*Ticket, error) {
-	if c.dummy {
-		c.dummyTickets[ticket.ID] = *ticket
-		return ticket, nil
-	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 	query := url.Values{}
 	query.Set("user", c.user)
@@ -355,9 +334,6 @@ func (c *Client) UpdateTicket(ticket *Ticket) (*Ticket, error) {
 }
 
 func (c *Client) CommentTicket(ticketID int, comment string) error {
-	if c.dummy {
-		return nil
-	}
 	x := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}}}
 	query := url.Values{}
 	query.Set("user", c.user)

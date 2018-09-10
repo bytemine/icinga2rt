@@ -72,7 +72,7 @@ func encodeEventTicket(et *eventTicket) ([]byte, error) {
 
 func (c *cache) getEventTicket(e *event.Notification) (*event.Notification, int, error) {
 	if *debug {
-		log.Printf("cache: get event for %v/%v", e.Host, e.Service)
+		log.Printf("%x cache: get event", eventID(e))
 	}
 
 	eID := eventID(e)
@@ -112,7 +112,7 @@ func (c *cache) getEventTicket(e *event.Notification) (*event.Notification, int,
 
 func (c *cache) updateEventTicket(e *event.Notification, ticketID int) error {
 	if *debug {
-		log.Printf("cache: update event for %v/%v", e.Host, e.Service)
+		log.Printf("%x cache: update event", eventID(e))
 	}
 
 	eID := eventID(e)
@@ -136,7 +136,7 @@ func (c *cache) updateEventTicket(e *event.Notification, ticketID int) error {
 
 func (c *cache) deleteEventTicket(e *event.Notification) error {
 	if *debug {
-		log.Printf("cache: delete event for %v/%v", e.Host, e.Service)
+		log.Printf("%x cache: delete event", eventID(e))
 	}
 
 	eID := eventID(e)
@@ -211,8 +211,6 @@ func (c *cache) ReadFrom(r io.Reader) (int64, error) {
 				return err
 			}
 		}
-
-		return nil
 	})
 
 	return 0, err

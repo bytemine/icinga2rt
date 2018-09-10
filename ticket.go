@@ -121,22 +121,24 @@ func (m Mapping) MarshalJSON() ([]byte, error) {
 }
 
 type ticketUpdater struct {
-	cache    *cache
-	rtClient *rt.Client
-	mappings []Mapping
-	nobody   string
-	queue    string
+	cache        *cache
+	rtClient     rtClient
+	mappings     []Mapping
+	nobody       string
+	queue        string
+	closedStatus []string
 }
 
-func newTicketUpdater(cache *cache, rtClient *rt.Client, mappings []Mapping, nobody string, queue string) *ticketUpdater {
-	return &ticketUpdater{cache: cache, rtClient: rtClient, mappings: mappings, nobody: nobody, queue: queue}
+func newTicketUpdater(cache *cache, rtClient rtClient, mappings []Mapping, nobody string, queue string, closedStatus []string) *ticketUpdater {
+	return &ticketUpdater{cache: cache, rtClient: rtClient, mappings: mappings, nobody: nobody, queue: queue, closedStatus: closedStatus}
 }
 
 func (t *ticketUpdater) update(e *event.Notification) error {
 	if *debug {
-		log.Printf("ticket updater: new event %v", formatEventSubject(e))
+		log.Printf("%x ticket updater: new event: %v", eventID(e), formatEventSubject(e))
 	}
 
+	// get a possible old event and ticket from the cache
 	oldEvent, ticketID, err := t.cache.getEventTicket(e)
 	if err != nil {
 		return err
@@ -145,15 +147,33 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 	existing := false
 	owned := false
 
-	if oldEvent != nil {
-		existing = true
-
+	// use switch here so we can use break
+	switch {
+	case oldEvent != nil && ticketID != -1:
 		oldTicket, err := t.rtClient.Ticket(ticketID)
 		if err != nil {
-			return err
+			if *debug {
+				log.Printf("%x ticket updater: ticket #%v in cache doesn't exist", eventID(e), ticketID)
+			}
+			break
 		}
 
-		owned = oldTicket.Owner == t.nobody
+		existing = true
+		owned = oldTicket.Owner != t.nobody
+
+		// check if the ticket has a status which signals "closed"
+		for _, v := range t.closedStatus {
+			if oldTicket.Status == v {
+				existing = false
+				if *debug {
+					log.Printf("%x ticket updater: ticket #%v has closed status: %v", eventID(e), ticketID, oldTicket.Status)
+				}
+			}
+		}
+	}
+
+	if *debug {
+		log.Printf("%x ticket updater: ticket #%v exists: %v owned: %v", eventID(e), ticketID, existing, owned)
 	}
 
 	for _, v := range t.mappings {
@@ -164,16 +184,21 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 		}
 
 		if *debug {
-			log.Printf("ticket updater: matching\nCondition: %#v\nEvent:     %#v", v.condition, x)
+			log.Printf("%x ticket updater: matching condition: %+v\tevent: %+v", eventID(e), v.condition, x)
 		}
 
 		if v.condition == x {
 			if *debug {
-				log.Printf("ticket updater: matched %v", v.action)
+				log.Printf("%x ticket updater: matched %+v action: %v", eventID(e), v.condition, v.actionName)
 			}
 
-			return v.action(t, e)
+			err := v.action(t, e)
+			return err
 		}
+	}
+
+	if *debug {
+		log.Printf("%x ticket updater: no condition matched", eventID(e))
 	}
 
 	return nil
@@ -193,7 +218,7 @@ func (t *ticketUpdater) delete(e *event.Notification) error {
 	}
 
 	if *debug {
-		log.Printf("ticket updater: deleted ticket #%v", updatedTicket.ID)
+		log.Printf("%x ticket updater: deleted ticket #%v", eventID(e), updatedTicket.ID)
 	}
 
 	if err = t.cache.deleteEventTicket(e); err != nil {
@@ -234,7 +259,7 @@ func (t *ticketUpdater) comment(e *event.Notification) error {
 	}
 
 	if *debug {
-		log.Printf("ticket updater: commented ticket #%v", ticketID)
+		log.Printf("%x ticket updater: commented ticket #%v", eventID(e), ticketID)
 	}
 
 	err = t.cache.updateEventTicket(e, ticketID)
@@ -254,7 +279,7 @@ func (t *ticketUpdater) create(e *event.Notification) error {
 	}
 
 	if *debug {
-		log.Printf("ticket updater: created ticket #%v", newTicket.ID)
+		log.Printf("%x ticket updater: created ticket #%v", eventID(e), newTicket.ID)
 	}
 
 	err = t.cache.updateEventTicket(e, newTicket.ID)
@@ -267,7 +292,7 @@ func (t *ticketUpdater) create(e *event.Notification) error {
 
 func (t *ticketUpdater) ignore(e *event.Notification) error {
 	if *debug {
-		log.Printf("ticket updater: ignoring event #%v", formatEventSubject(e))
+		log.Printf("%x ticket updater: ignoring event #%v", eventID(e), formatEventSubject(e))
 	}
 	return nil
 }

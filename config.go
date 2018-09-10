@@ -28,9 +28,10 @@ type cacheConfig struct {
 }
 
 type ticketConfig struct {
-	Mappings []Mapping
-	Nobody   string
-	Queue    string
+	Mappings     []Mapping
+	Nobody       string
+	Queue        string
+	ClosedStatus []string
 }
 
 type config struct {
@@ -120,7 +121,7 @@ var defaultConfig = config{
 					owned:    false,
 				},
 				actionName: "comment",
-				action:     (*ticketUpdater).create,
+				action:     (*ticketUpdater).comment,
 			},
 			Mapping{
 				condition: Condition{
@@ -138,11 +139,16 @@ var defaultConfig = config{
 					owned:    false,
 				},
 				actionName: "comment",
-				action:     (*ticketUpdater).create,
+				action:     (*ticketUpdater).comment,
 			},
 		},
 		Nobody: "Nobody",
 		Queue:  "general",
+		ClosedStatus: []string{
+			"done",
+			"resolved",
+			"deleted",
+		},
 	},
 }
 
@@ -169,6 +175,10 @@ func checkConfig(conf *config) error {
 
 	if conf.Ticket.Mappings == nil || len(conf.Ticket.Mappings) == 0 {
 		return fmt.Errorf("Ticket.Mappings must be set.")
+	}
+
+	if conf.Ticket.ClosedStatus == nil || len(conf.Ticket.ClosedStatus) == 0 {
+		return fmt.Errorf("Ticket.ClosedStatus must be set.")
 	}
 
 	if conf.Cache.File == "" {
