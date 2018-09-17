@@ -1,10 +1,10 @@
 GO111MODULE := on
 
-tar: dist bin/icinga2rt
+tar: dist bin/icinga2rt dist/icinga2rt.json.example
 	mkdir dist/bytemine-icinga2rt
 	cp bin/icinga2rt dist/bytemine-icinga2rt/bytemine-icinga2rt
-	cd dist && ./bytemine-icinga2rt/bytemine-icinga2rt -example
 	cp README.md dist/bytemine-icinga2rt
+	mv dist/icinga2rt.json.example dist/bytemine-icinga2rt
 	mv dist/bytemine-icinga2rt "dist/bytemine-icinga2rt-`bin/icinga2rt -version`"
 	cd dist && tar cvzf bytemine-icinga2rt-`../bin/icinga2rt -version`.tar.gz bytemine-icinga2rt-`../bin/icinga2rt -version`
 	cd dist && rm -r bytemine-icinga2rt-`../bin/icinga2rt -version`
@@ -13,7 +13,7 @@ tar: dist bin/icinga2rt
 bin:
 	mkdir -p bin
 
-bin/icinga2rt: bin
+bin/icinga2rt: bin go.mod
 	go build -o bin/icinga2rt
 
 test:
@@ -22,3 +22,5 @@ test:
 dist:
 	mkdir -p dist
 
+dist/icinga2rt.json.example: dist bin/icinga2rt
+	cd dist && ../bin/icinga2rt -example
