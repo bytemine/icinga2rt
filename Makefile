@@ -8,7 +8,7 @@ tar: dist bin/icinga2rt dist/icinga2rt.json.example
 	mv dist/bytemine-icinga2rt "dist/bytemine-icinga2rt-`bin/icinga2rt -version`"
 	cd dist && tar cvzf bytemine-icinga2rt-`../bin/icinga2rt -version`.tar.gz bytemine-icinga2rt-`../bin/icinga2rt -version`
 	cd dist && rm -r bytemine-icinga2rt-`../bin/icinga2rt -version`
-	sha256sum dist/bytemine-icinga2rt-*.tar.gz
+	sha256sum dist/bytemine-icinga2rt-`bin/icinga2rt -version`.tar.gz
 
 bin: 
 	mkdir -p bin
