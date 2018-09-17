@@ -10,10 +10,10 @@ tar: dist bin/icinga2rt dist/icinga2rt.json.example
 	cd dist && rm -r bytemine-icinga2rt-`../bin/icinga2rt -version`
 	sha256sum dist/bytemine-icinga2rt-*.tar.gz
 
-bin:
+bin: 
 	mkdir -p bin
 
-bin/icinga2rt: bin go.mod
+bin/icinga2rt: bin go.mod main.go cache.go ticket.go config.go rt/rt.go
 	go build -o bin/icinga2rt
 
 test:
