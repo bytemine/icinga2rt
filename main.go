@@ -14,7 +14,7 @@ import (
 	"github.com/bytemine/icinga2rt/rt"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
