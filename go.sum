@@ -1,6 +1,8 @@
-github.com/bytemine/go-icinga2 v0.0.2 h1:CetjI0iqen/NboPCtnLCGEfcAWs7vY9pD+/ZZqi4wWU=
-github.com/bytemine/go-icinga2 v0.0.2/go.mod h1:EcdGvd8AQNKmTsgE5oqmWk0COr6UU9CS4QQBb3HUqs8=
-github.com/bytemine/go-icinga2 v0.0.3 h1:FycXcc5rqvJKMzNCzVFcBitykoNl1p65HKcR39PO958=
-github.com/bytemine/go-icinga2 v0.0.3/go.mod h1:EcdGvd8AQNKmTsgE5oqmWk0COr6UU9CS4QQBb3HUqs8=
+github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
+github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
+github.com/bytemine/go-icinga2 v0.0.4 h1:XwbJTWP95jCQazA7+0Zd9bc6ejnTuuLHu6GB/vMxspg=
+github.com/bytemine/go-icinga2 v0.0.4/go.mod h1:EcdGvd8AQNKmTsgE5oqmWk0COr6UU9CS4QQBb3HUqs8=
 github.com/etcd-io/bbolt v1.3.0 h1:ec0U3x11Mk69A8YwQyZEhNaUqHkQSv2gDR3Bioz5DfU=
 github.com/etcd-io/bbolt v1.3.0/go.mod h1:ZF2nL25h33cCyBtcyWeZ2/I3HQOfTP+0PIEvHjkjCrw=
+golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e h1:EfdBzeKbFSvOjoIqSZcfS8wp0FBLokGBEs9lz1OtSg0=
+golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
