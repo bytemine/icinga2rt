@@ -47,80 +47,7 @@ If parts of this are used, comments (//...) must be removed. Using the `-example
 			"File": "/var/lib/icinga2rt/icinga2rt.bolt" // Path to cache file storing event-ticket associations
 		},
 		"Ticket": {
-			"Mappings": [ // Mappings to decide the action for events. See mappings section further down.
-				{
-					"Condition": {
-						"State": "OK",
-						"Existing": false,
-						"Owned": false
-					},
-					"Action": "ignore"
-				},
-				{
-					"Condition": {
-						"State": "OK",
-						"Existing": true,
-						"Owned": false
-					},
-					"Action": "delete"
-				},
-				{
-					"Condition": {
-						"State": "OK",
-						"Existing": true,
-						"Owned": true
-					},
-					"Action": "comment"
-				},
-				{
-					"Condition": {
-						"State": "WARNING",
-						"Existing": false,
-						"Owned": false
-					},
-					"Action": "create"
-				},
-				{
-					"Condition": {
-						"State": "WARNING",
-						"Existing": true,
-						"Owned": false
-					},
-					"Action": "comment"
-				},
-				{
-					"Condition": {
-						"State": "CRITICAL",
-						"Existing": false,
-						"Owned": false
-					},
-					"Action": "create"
-				},
-				{
-					"Condition": {
-						"State": "CRITICAL",
-						"Existing": true,
-						"Owned": false
-					},
-					"Action": "comment"
-				},
-				{
-					"Condition": {
-						"State": "UNKOWN",
-						"Existing": false,
-						"Owned": false
-					},
-					"Action": "create"
-				},
-				{
-					"Condition": {
-						"State": "UNKOWN",
-						"Existing": true,
-						"Owned": false
-					},
-					"Action": "comment"
-				}
-			],
+			"Mappings": "/etc/bytemine/icinga2rt.csv", // File with mappings
 			"Nobody": "Nobody", // A Request Tracker ticket is unowned if owned by this user.
 			"Queue": "general", // Request Tracker queue where tickets are created
 			"ClosedStatus": [ // List of Request Tracker stati for which tickets are considered to be closed.
@@ -133,19 +60,55 @@ If parts of this are used, comments (//...) must be removed. Using the `-example
 
 ### Mappings
 
-A mapping sets the action if an event (and it's associated ticket) match a condition. A condition
-consists of
+A mapping is the tuple of an events state, the old state (if any), if the ticket is owned, and an action to
+perform for this event. These mappings are stored in a CSV file with the columns
 
-- `State`: State of the Icinga2 event. String, one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK`. 
-- `Existing`: If a Request Tracker ticket is existing for this event. Either `true` or `false`.
-- `Owned`: If the Request Tracker ticket is owned by someone else than the nobody-user. String of the username.
+- state: one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK`
+- old state: one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK` or an empty string for non existing tickets. 
+- owned: one of `true` or `false`. should be `false` if old state is the empty string.
+- action: one of `create`, `comment`, `delete` or `ignore`
 
-The action can be one of 
+The values supplied are read case-insensitive, but the values provided above are preferred.
+Lines can be commented if their first character is `#`.
 
-- `create`: Create a new ticket for this event.
-- `comment`: Comment an existing ticket for this event.
-- `delete`: Delete an existing ticket.
-- `ignore`: Ignore this event.
+#### Example
+
+	# state, old state, owned, action
+	# ignore OK events if no old state is known
+	OK,,false,ignore
+	# delete ticket if unowned and was WARNING, CRITICAL or UNKNOWN
+	OK,WARNING,false,delete
+	OK,CRITICAL,false,delete
+	OK,UNKNOWN,false,delete
+	# comment ticket if unowned and was WARNING, CRITICAL or UNKNOWN
+	OK,WARNING,true,comment
+	OK,CRITICAL,true,comment
+	OK,UNKNOWN,true,comment
+	# create tickets for WARNING, CRITICAL or UNKNOWN if not exisiting
+	WARNING,,false,create
+	CRITICAL,,false,create
+	UNKNOWN,,false,create
+	# ignore if state hasn't changed
+	WARNING,WARNING,false,ignore
+	WARNING,WARNING,true,ignore
+	CRITICAL,CRITICAL,false,ignore
+	CRITICAL,CRITICAL,true,ignore
+	UNKNOWN,UNKNOWN,false,ignore
+	UNKNOWN,UNKNOWN,true,ignore
+	# comment tickets on state changes
+	WARNING,CRITICAL,false,comment
+	WARNING,CRITICAL,true,comment
+	WARNING,UNKNOWN,false,comment
+	WARNING,UNKNOWN,true,comment
+	CRITICAL,WARNING,false,comment
+	CRITICAL,WARNING,true,comment
+	CRITICAL,UNKNOWN,false,comment
+	CRITICAL,UNKNOWN,true,comment
+	UNKNOWN,WARNING,false,comment
+	UNKNOWN,WARNING,true,comment
+	UNKNOWN,CRITICAL,false,comment
+	UNKNOWN,CRITICAL,true,comment
+	
 
 ## Running
 
