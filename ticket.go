@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -9,129 +8,32 @@ import (
 	"github.com/bytemine/icinga2rt/rt"
 )
 
-const (
-	actionStringDelete  = "delete"
-	actionStringComment = "comment"
-	actionStringCreate  = "create"
-	actionStringIgnore  = "ignore"
-)
-
 type actionFunc func(*ticketUpdater, *event.Notification) error
 
-// Condition describes the properties an event must have to match.
-type Condition struct {
+// condition describes the properties an event must have to match.
+type condition struct {
 	state    event.State
-	existing bool
-	owned    bool
+	oldState event.State
+	// existing bool
+	owned bool
 }
 
-type jsonCondition struct {
-	State    string
-	Existing bool
-	Owned    bool
-}
-
-// UnmarshalJSON unmarshals JSON into a condition.
-func (c *Condition) UnmarshalJSON(data []byte) error {
-	var x jsonCondition
-	err := json.Unmarshal(data, &x)
-	if err != nil {
-		return err
-	}
-
-	switch x.State {
-	case "OK":
-		c.state = event.StateOK
-	case "WARNING":
-		c.state = event.StateWarning
-	case "CRITICAL":
-		c.state = event.StateCritical
-	case "UNKNOWN":
-		c.state = event.StateUnknown
-	default:
-		return fmt.Errorf("unknown state: \"%v\"", x.State)
-	}
-
-	c.existing = x.Existing
-	c.owned = x.Owned
-
-	return nil
-}
-
-// MarshalJSON marshals a Condition to JSON.
-func (c Condition) MarshalJSON() ([]byte, error) {
-	x := jsonCondition{State: c.state.String(), Existing: c.existing, Owned: c.owned}
-
-	b, err := json.Marshal(x)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-// Mapping describes how an event matching Condition should be acted upon.
-type Mapping struct {
-	condition  Condition
-	action     actionFunc
-	actionName string // helper for marshalling as we can't compare functions
-}
-
-type jsonMapping struct {
-	Condition Condition
-	Action    string
-}
-
-// UnmarshalJSON unmarshals a Mapping from JSON.
-func (m *Mapping) UnmarshalJSON(data []byte) error {
-	var x jsonMapping
-	err := json.Unmarshal(data, &x)
-	if err != nil {
-		return err
-	}
-
-	m.actionName = x.Action
-
-	switch x.Action {
-	case actionStringDelete:
-		m.action = (*ticketUpdater).delete
-	case actionStringComment:
-		m.action = (*ticketUpdater).comment
-	case actionStringCreate:
-		m.action = (*ticketUpdater).create
-	case actionStringIgnore:
-		m.action = (*ticketUpdater).ignore
-	default:
-		return fmt.Errorf("unknown action: %v", m.action)
-	}
-
-	m.condition = x.Condition
-
-	return nil
-}
-
-// MarshalJSON marshals a Mapping to JSON.
-func (m Mapping) MarshalJSON() ([]byte, error) {
-	x := jsonMapping{Condition: m.condition, Action: m.actionName}
-
-	b, err := json.Marshal(x)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
+// mapping describes how an event matching condition should be acted upon.
+type mapping struct {
+	condition condition
+	action    actionFunc
 }
 
 type ticketUpdater struct {
 	cache        *cache
 	rtClient     rtClient
-	mappings     []Mapping
+	mappings     []mapping
 	nobody       string
 	queue        string
 	closedStatus []string
 }
 
-func newTicketUpdater(cache *cache, rtClient rtClient, mappings []Mapping, nobody string, queue string, closedStatus []string) *ticketUpdater {
+func newTicketUpdater(cache *cache, rtClient rtClient, mappings []mapping, nobody string, queue string, closedStatus []string) *ticketUpdater {
 	return &ticketUpdater{cache: cache, rtClient: rtClient, mappings: mappings, nobody: nobody, queue: queue, closedStatus: closedStatus}
 }
 
@@ -146,12 +48,14 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 		return err
 	}
 
-	existing := false
+	// assume a fresh event
+	// existing := false
 	owned := false
+	oldState := event.State(event.StateNil)
 
 	// use switch here so we can use break
 	switch {
-	case oldEvent != nil && ticketID != -1:
+	case oldEvent != nil && ticketID != -1: // existing event found
 		oldTicket, err := t.rtClient.Ticket(ticketID)
 		if err != nil {
 			if *debug {
@@ -160,13 +64,16 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 			break
 		}
 
-		existing = true
+		// we have an old event
+		// existing = true
+		oldState = oldEvent.CheckResult.State
 		owned = oldTicket.Owner != t.nobody
 
-		// check if the ticket has a status which signals "closed"
+		// check if the ticket has a status which signals "closed". if yes, set existing to false
 		for _, v := range t.closedStatus {
 			if oldTicket.Status == v {
-				existing = false
+				// existing = false
+				oldState = event.State(event.StateNil)
 				if *debug {
 					log.Printf("%x ticket updater: ticket #%v has closed status: %v", eventID(e), ticketID, oldTicket.Status)
 				}
@@ -175,14 +82,15 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 	}
 
 	if *debug {
-		log.Printf("%x ticket updater: ticket #%v exists: %v owned: %v", eventID(e), ticketID, existing, owned)
+		log.Printf("%x ticket updater: ticket #%v owned: %v", eventID(e), ticketID, owned)
 	}
 
 	for _, v := range t.mappings {
-		x := Condition{
+		x := condition{
 			state:    e.CheckResult.State,
-			existing: existing,
-			owned:    owned,
+			oldState: oldState,
+			// existing: existing,
+			owned: owned,
 		}
 
 		if *debug {
@@ -191,7 +99,7 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 
 		if v.condition == x {
 			if *debug {
-				log.Printf("%x ticket updater: matched %+v action: %v", eventID(e), v.condition, v.actionName)
+				log.Printf("%x ticket updater: matched %+v", eventID(e), v.condition)
 			}
 
 			err := v.action(t, e)

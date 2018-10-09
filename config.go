@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/bytemine/go-icinga2/event"
 )
@@ -28,7 +31,8 @@ type cacheConfig struct {
 }
 
 type ticketConfig struct {
-	Mappings     []Mapping
+	Mappings     string
+	mappings     []mapping
 	Nobody       string
 	Queue        string
 	ClosedStatus []string
@@ -59,91 +63,10 @@ var defaultConfig = config{
 		File: "/var/lib/icinga2rt/icinga2rt.bolt",
 	},
 	Ticket: ticketConfig{
-		Mappings: []Mapping{
-			Mapping{
-				condition: Condition{
-					state:    event.StateOK,
-					existing: false,
-					owned:    false,
-				},
-				actionName: "ignore",
-				action:     (*ticketUpdater).ignore,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateOK,
-					existing: true,
-					owned:    false,
-				},
-				actionName: "delete",
-				action:     (*ticketUpdater).delete,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateOK,
-					existing: true,
-					owned:    true,
-				},
-				actionName: "comment",
-				action:     (*ticketUpdater).comment,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateWarning,
-					existing: false,
-					owned:    false,
-				},
-				actionName: "create",
-				action:     (*ticketUpdater).create,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateWarning,
-					existing: true,
-					owned:    false,
-				},
-				actionName: "comment",
-				action:     (*ticketUpdater).comment,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateCritical,
-					existing: false,
-					owned:    false,
-				},
-				actionName: "create",
-				action:     (*ticketUpdater).create,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateCritical,
-					existing: true,
-					owned:    false,
-				},
-				actionName: "comment",
-				action:     (*ticketUpdater).comment,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateUnknown,
-					existing: false,
-					owned:    false,
-				},
-				actionName: "create",
-				action:     (*ticketUpdater).create,
-			},
-			Mapping{
-				condition: Condition{
-					state:    event.StateUnknown,
-					existing: true,
-					owned:    false,
-				},
-				actionName: "comment",
-				action:     (*ticketUpdater).comment,
-			},
-		},
-		Nobody: "Nobody",
-		Queue:  "general",
+		Mappings: "/etc/bytemine/icinga2rt.csv",
+		mappings: []mapping{},
+		Nobody:   "Nobody",
+		Queue:    "general",
 		ClosedStatus: []string{
 			"done",
 			"resolved",
@@ -173,18 +96,8 @@ func checkConfig(conf *config) error {
 		return fmt.Errorf("Ticket.Nobody must be set.")
 	}
 
-	if conf.Ticket.Mappings == nil || len(conf.Ticket.Mappings) == 0 {
+	if conf.Ticket.Mappings == "" || len(conf.Ticket.Mappings) == 0 {
 		return fmt.Errorf("Ticket.Mappings must be set.")
-	}
-
-	for _, v := range conf.Ticket.Mappings {
-		if !v.condition.existing && v.actionName == actionStringDelete {
-			return fmt.Errorf("Condition \"not existing\" and action \"delete\" makes no sense.")
-		}
-
-		if !v.condition.existing && v.actionName == actionStringComment {
-			return fmt.Errorf("Condition \"not existing\" and action \"comment\" makes no sense.")
-		}
 	}
 
 	if conf.Ticket.ClosedStatus == nil || len(conf.Ticket.ClosedStatus) == 0 {
@@ -198,39 +111,143 @@ func checkConfig(conf *config) error {
 	return nil
 }
 
-func readConfig(filename string) (*config, error) {
+func loadConfig(filename string) (*config, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 
+	return readConfig(f)
+}
+
+func readConfig(r io.Reader) (*config, error) {
 	var c config
 
-	dec := json.NewDecoder(f)
+	dec := json.NewDecoder(r)
 
-	err = dec.Decode(&c)
+	err := dec.Decode(&c)
 	if err != nil {
 		return nil, err
 	}
 
+	f, err := os.Open(c.Ticket.Mappings)
+	if err != nil {
+		return nil, err
+	}
+
+	mappings, err := readMappings(f)
+	if err != nil {
+		return nil, err
+	}
+
+	c.Ticket.mappings = mappings
+
 	return &c, nil
 }
 
-func writeConfig(filename string, c *config) error {
+func saveConfig(filename string, c *config) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 
+	return writeConfig(f, c)
+}
+
+func writeConfig(w io.Writer, c *config) error {
 	x, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return err
 	}
 
-	_, err = f.Write(x)
+	_, err = w.Write(x)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func parseCSVBool(value string) (bool, error) {
+	switch strings.ToLower(value) {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid boolean value: %v", value)
+	}
+}
+
+const (
+	actionStringDelete  = "delete"
+	actionStringComment = "comment"
+	actionStringCreate  = "create"
+	actionStringIgnore  = "ignore"
+)
+
+func parseCSVAction(value string) (actionFunc, error) {
+	switch strings.ToLower(value) {
+	case actionStringDelete:
+		return (*ticketUpdater).delete, nil
+	case actionStringComment:
+		return (*ticketUpdater).comment, nil
+	case actionStringCreate:
+		return (*ticketUpdater).create, nil
+	case actionStringIgnore:
+		return (*ticketUpdater).ignore, nil
+	default:
+		return nil, fmt.Errorf("invalid action value: %v", value)
+	}
+
+}
+
+func readMappings(r io.Reader) ([]mapping, error) {
+	ms := []mapping{}
+
+	x := csv.NewReader(r)
+	x.Comment = '#'
+
+	// state, old state, existing, owned, action
+	x.FieldsPerRecord = 4
+	line := 0
+	for {
+		line++
+		record, err := x.Read()
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+
+			break
+		}
+
+		// uppercase the value as icingas strings are uppercase
+		state := event.NewState(strings.ToUpper(record[0]))
+		if state == event.StateNil {
+			return nil, fmt.Errorf("error in line %v: invalid state value %v", line, record[0])
+		}
+
+		oldState := event.NewState(record[1])
+
+		// existing, err := parseCSVBool(record[2])
+		// if err != nil {
+		// 	return nil, fmt.Errorf("error in line %v: %v", line, err)
+		// }
+
+		owned, err := parseCSVBool(record[2])
+		if err != nil {
+			return nil, fmt.Errorf("error in line %v: %v", line, err)
+		}
+
+		action, err := parseCSVAction(record[3])
+		if err != nil {
+			return nil, fmt.Errorf("error in line %v: %v", line, err)
+		}
+
+		m := mapping{condition: condition{state: state, oldState: oldState, owned: owned}, action: action}
+		ms = append(ms, m)
+	}
+
+	return ms, nil
 }

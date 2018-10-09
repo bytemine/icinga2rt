@@ -2,59 +2,91 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/bytemine/go-icinga2/event"
 	"github.com/bytemine/icinga2rt/rt"
 )
 
-var testMappings = []Mapping{
-	{
-		condition: Condition{
-			state:    event.StateCritical,
-			existing: false,
-			owned:    false,
-		},
-		action:     (*ticketUpdater).create,
-		actionName: "create",
-	},
-	{
-		condition: Condition{
-			state:    event.StateCritical,
-			existing: true,
-			owned:    false,
-		},
-		action:     (*ticketUpdater).comment,
-		actionName: "comment",
-	},
-	{
-		condition: Condition{
-			state:    event.StateWarning,
-			existing: false,
-			owned:    false,
-		},
-		action:     (*ticketUpdater).create,
-		actionName: "create",
-	},
-	{
-		condition: Condition{
-			state:    event.StateWarning,
-			existing: true,
-			owned:    false,
-		},
-		action:     (*ticketUpdater).comment,
-		actionName: "comment",
-	},
-	{
-		condition: Condition{
-			state:    event.StateOK,
-			existing: true,
-			owned:    false,
-		},
-		action:     (*ticketUpdater).delete,
-		actionName: "delete",
-	},
-}
+const testMappingsCSV = `# state, old state, owned, action
+OK,,false,ignore
+OK,WARNING,false,delete
+OK,WARNING,true,comment
+OK,CRITICAL,false,delete
+OK,CRITICAL,true,comment
+OK,UNKNOWN,false,delete
+OK,UNKNOWN,true,comment
+WARNING,,false,create
+WARNING,WARNING,false,ignore
+WARNING,WARNING,true,ignore
+WARNING,CRITICAL,false,comment
+WARNING,CRITICAL,true,comment
+WARNING,UNKNOWN,false,comment
+WARNING,UNKNOWN,true,comment
+CRITICAL,,false,create
+CRITICAL,WARNING,false,comment
+CRITICAL,WARNING,true,comment
+CRITICAL,CRITICAL,false,ignore
+CRITICAL,CRITICAL,true,ignore
+CRITICAL,UNKNOWN,false,comment
+CRITICAL,UNKNOWN,true,comment
+UNKNOWN,,false,create
+UNKNOWN,WARNING,false,comment
+UNKNOWN,WARNING,true,comment
+UNKNOWN,CRITICAL,false,comment
+UNKNOWN,CRITICAL,true,comment
+UNKNOWN,UNKNOWN,false,ignore
+UNKNOWN,UNKNOWN,true,ignore
+`
+
+// var testMappings = []Mapping{
+// 	{
+// 		condition: Condition{
+// 			state:    event.StateCritical,
+// 			existing: false,
+// 			owned:    false,
+// 		},
+// 		action:     (*ticketUpdater).create,
+// 		actionName: "create",
+// 	},
+// 	{
+// 		condition: Condition{
+// 			state:    event.StateCritical,
+// 			existing: true,
+// 			owned:    false,
+// 		},
+// 		action:     (*ticketUpdater).comment,
+// 		actionName: "comment",
+// 	},
+// 	{
+// 		condition: Condition{
+// 			state:    event.StateWarning,
+// 			existing: false,
+// 			owned:    false,
+// 		},
+// 		action:     (*ticketUpdater).create,
+// 		actionName: "create",
+// 	},
+// 	{
+// 		condition: Condition{
+// 			state:    event.StateWarning,
+// 			existing: true,
+// 			owned:    false,
+// 		},
+// 		action:     (*ticketUpdater).comment,
+// 		actionName: "comment",
+// 	},
+// 	{
+// 		condition: Condition{
+// 			state:    event.StateOK,
+// 			existing: true,
+// 			owned:    false,
+// 		},
+// 		action:     (*ticketUpdater).delete,
+// 		actionName: "delete",
+// 	},
+// }
 
 // the order is important.
 // we can't check everything here. it isn't checked if the comments are really attached to a ticket, or the status of a ticket,
@@ -144,6 +176,11 @@ var tests = []struct {
 }
 
 func TestTicketUpdaterUpdate(t *testing.T) {
+	testMappings, err := readMappings(strings.NewReader(testMappingsCSV))
+	if err != nil {
+		t.Error(err)
+	}
+
 	rt := NewDummyRT()
 	cache, cachePath, err := tempCache()
 	if err != nil {
@@ -154,6 +191,7 @@ func TestTicketUpdaterUpdate(t *testing.T) {
 	tu := newTicketUpdater(cache, rt, testMappings, "", "Test-Queue", []string{"deleted"})
 
 	for _, v := range tests {
+		t.Logf("%+v", v)
 		if v.ExistsBefore {
 			x, ticketID, err := cache.getEventTicket(v.Event)
 			if err != nil {

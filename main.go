@@ -14,7 +14,7 @@ import (
 	"github.com/bytemine/icinga2rt/rt"
 )
 
-const version = "0.1.1"
+const version = "0.1.2"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
@@ -70,14 +70,14 @@ func main() {
 	}
 
 	if *writeExample {
-		err := writeConfig("icinga2rt.json.example", &defaultConfig)
+		err := saveConfig("icinga2rt.json.example", &defaultConfig)
 		if err != nil {
 			log.Fatal("FATAL: init:", err)
 		}
 		os.Exit(0)
 	}
 
-	conf, err := readConfig(*configFile)
+	conf, err := loadConfig(*configFile)
 	if err != nil {
 		log.Fatalf("FATAL: init: Couldn't open config file %v: %v", *configFile, err)
 	}
@@ -136,7 +136,7 @@ func main() {
 		log.Fatal("FATAL: init:", err)
 	}
 
-	tu := newTicketUpdater(eventCache, rtClient, conf.Ticket.Mappings, conf.Ticket.Nobody, conf.Ticket.Queue, conf.Ticket.ClosedStatus)
+	tu := newTicketUpdater(eventCache, rtClient, conf.Ticket.mappings, conf.Ticket.Nobody, conf.Ticket.Queue, conf.Ticket.ClosedStatus)
 
 	icingaClient, err := icinga2.NewClient(conf.Icinga.URL, conf.Icinga.User, conf.Icinga.Password, conf.Icinga.Insecure)
 	if err != nil {
