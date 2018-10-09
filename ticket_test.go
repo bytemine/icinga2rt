@@ -10,83 +10,41 @@ import (
 )
 
 const testMappingsCSV = `# state, old state, owned, action
+# ignore OK events if no old state is known
 OK,,false,ignore
+# delete ticket if unowned and was WARNING, CRITICAL or UNKNOWN
 OK,WARNING,false,delete
-OK,WARNING,true,comment
 OK,CRITICAL,false,delete
-OK,CRITICAL,true,comment
 OK,UNKNOWN,false,delete
+# comment ticket if unowned and was WARNING, CRITICAL or UNKNOWN
+OK,WARNING,true,comment
+OK,CRITICAL,true,comment
 OK,UNKNOWN,true,comment
+# create tickets for WARNING, CRITICAL or UNKNOWN if not exisiting
 WARNING,,false,create
+CRITICAL,,false,create
+UNKNOWN,,false,create
+# ignore if state hasn't changed
 WARNING,WARNING,false,ignore
 WARNING,WARNING,true,ignore
+CRITICAL,CRITICAL,false,ignore
+CRITICAL,CRITICAL,true,ignore
+UNKNOWN,UNKNOWN,false,ignore
+UNKNOWN,UNKNOWN,true,ignore
+# comment tickets on state changes
 WARNING,CRITICAL,false,comment
 WARNING,CRITICAL,true,comment
 WARNING,UNKNOWN,false,comment
 WARNING,UNKNOWN,true,comment
-CRITICAL,,false,create
 CRITICAL,WARNING,false,comment
 CRITICAL,WARNING,true,comment
-CRITICAL,CRITICAL,false,ignore
-CRITICAL,CRITICAL,true,ignore
 CRITICAL,UNKNOWN,false,comment
 CRITICAL,UNKNOWN,true,comment
-UNKNOWN,,false,create
 UNKNOWN,WARNING,false,comment
 UNKNOWN,WARNING,true,comment
 UNKNOWN,CRITICAL,false,comment
 UNKNOWN,CRITICAL,true,comment
-UNKNOWN,UNKNOWN,false,ignore
-UNKNOWN,UNKNOWN,true,ignore
 `
-
-// var testMappings = []Mapping{
-// 	{
-// 		condition: Condition{
-// 			state:    event.StateCritical,
-// 			existing: false,
-// 			owned:    false,
-// 		},
-// 		action:     (*ticketUpdater).create,
-// 		actionName: "create",
-// 	},
-// 	{
-// 		condition: Condition{
-// 			state:    event.StateCritical,
-// 			existing: true,
-// 			owned:    false,
-// 		},
-// 		action:     (*ticketUpdater).comment,
-// 		actionName: "comment",
-// 	},
-// 	{
-// 		condition: Condition{
-// 			state:    event.StateWarning,
-// 			existing: false,
-// 			owned:    false,
-// 		},
-// 		action:     (*ticketUpdater).create,
-// 		actionName: "create",
-// 	},
-// 	{
-// 		condition: Condition{
-// 			state:    event.StateWarning,
-// 			existing: true,
-// 			owned:    false,
-// 		},
-// 		action:     (*ticketUpdater).comment,
-// 		actionName: "comment",
-// 	},
-// 	{
-// 		condition: Condition{
-// 			state:    event.StateOK,
-// 			existing: true,
-// 			owned:    false,
-// 		},
-// 		action:     (*ticketUpdater).delete,
-// 		actionName: "delete",
-// 	},
-// }
 
 // the order is important.
 // we can't check everything here. it isn't checked if the comments are really attached to a ticket, or the status of a ticket,
