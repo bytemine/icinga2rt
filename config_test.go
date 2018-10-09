@@ -6,15 +6,15 @@ import (
 )
 
 const validCSV = `# state, old state, existing, owned, action
-OK,WARNING,true,false,comment
-CRITICAL,UNKNOWN,true,true,ignore
-OK,WARNING,true,false,create
-CRITICAL,UNKNOWN,true,true,delete`
+OK,WARNING,true,comment
+CRITICAL,UNKNOWN,false,ignore
+OK,WARNING,true,create
+CRITICAL,UNKNOWN,false,delete`
 
-const invalidCSVState = `,WARNING,true,false,comment`
-const invalidCSVBool0 = `OK,WARNING,ŧ®üé,false,comment`
-const invalidCSVBool1 = `OK,WARNING,true,fæðlſ€,comment`
-const invalidCSVAction = `OK,WARNING,true,false,¢ömm€nŧ`
+const invalidCSVState = `,WARNING,true,comment`
+const invalidCSVBool0 = `OK,WARNING,ŧ®üé,comment`
+const invalidCSVBool1 = `OK,WARNING,fæðlſ€,comment`
+const invalidCSVAction = `OK,WARNING,true,¢ömm€nŧ`
 
 func TestReadMappings(t *testing.T) {
 	r := strings.NewReader(validCSV)
