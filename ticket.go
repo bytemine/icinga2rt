@@ -14,8 +14,7 @@ type actionFunc func(*ticketUpdater, *event.Notification) error
 type condition struct {
 	state    event.State
 	oldState event.State
-	// existing bool
-	owned bool
+	owned    bool
 }
 
 // mapping describes how an event matching condition should be acted upon.
@@ -49,7 +48,6 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 	}
 
 	// assume a fresh event
-	// existing := false
 	owned := false
 	oldState := event.State(event.StateNil)
 
@@ -65,15 +63,15 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 		}
 
 		// we have an old event
-		// existing = true
 		oldState = oldEvent.CheckResult.State
 		owned = oldTicket.Owner != t.nobody
 
-		// check if the ticket has a status which signals "closed". if yes, set existing to false
+		// check if the ticket has a status which signals "closed".
+		// if it is closed, we have no old status and the ticket is unowned.
 		for _, v := range t.closedStatus {
 			if oldTicket.Status == v {
-				// existing = false
 				oldState = event.State(event.StateNil)
+				owned = false
 				if *debug {
 					log.Printf("%x ticket updater: ticket #%v has closed status: %v", eventID(e), ticketID, oldTicket.Status)
 				}
@@ -89,8 +87,7 @@ func (t *ticketUpdater) update(e *event.Notification) error {
 		x := condition{
 			state:    e.CheckResult.State,
 			oldState: oldState,
-			// existing: existing,
-			owned: owned,
+			owned:    owned,
 		}
 
 		if *debug {
