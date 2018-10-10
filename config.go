@@ -230,11 +230,6 @@ func readMappings(r io.Reader) ([]mapping, error) {
 
 		oldState := event.NewState(record[1])
 
-		// existing, err := parseCSVBool(record[2])
-		// if err != nil {
-		// 	return nil, fmt.Errorf("error in line %v: %v", line, err)
-		// }
-
 		owned, err := parseCSVBool(record[2])
 		if err != nil {
 			return nil, fmt.Errorf("error in line %v: %v", line, err)
