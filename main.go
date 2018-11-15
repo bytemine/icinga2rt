@@ -14,7 +14,7 @@ import (
 	"github.com/bytemine/icinga2rt/rt"
 )
 
-const version = "0.2.1"
+const version = "0.2.2"
 const icingaQueueName = "icinga2rt"
 
 var writeExample = flag.Bool("example", false, "write example configuration file as icinga2rt.json.example to current directory")
@@ -143,7 +143,7 @@ func main() {
 		log.Fatal("FATAL: init:", err)
 	}
 
-	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
+	r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, conf.Icinga.Filter, event.StreamTypeNotification)
 	if err != nil {
 		log.Fatal("FATAL: init:", err)
 	}
@@ -159,7 +159,7 @@ func main() {
 				log.Printf("main: trying to reconnect to icinga.")
 			}
 
-			r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, "", event.StreamTypeNotification)
+			r, err := openEventStreamer(conf.Icinga.Retries, icingaClient, icingaQueueName, conf.Icinga.Filter, event.StreamTypeNotification)
 			if err != nil {
 				log.Fatal("FATAL: main:", err)
 			}

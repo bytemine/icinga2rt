@@ -15,6 +15,7 @@ type icingaConfig struct {
 	URL      string
 	User     string
 	Password string
+	Filter   string
 	Insecure bool
 	Retries  int
 }
@@ -50,6 +51,7 @@ var defaultConfig = config{
 		URL:      "https://monitoring.example.com:5665",
 		User:     "root",
 		Password: "secret",
+		Filter:   "",
 		Insecure: true,
 		Retries:  5,
 	},
