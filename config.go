@@ -100,7 +100,7 @@ func checkConfig(conf *config) error {
 		return fmt.Errorf("Icinga.Retries must be > 0.")
 	}
 
-	if len(conf.Icinga.LocalFilter.All) > 0 && len(conf.Icinga.LocalFilter.Any) > 0 {
+	if conf.Icinga.LocalFilter.All != nil && conf.Icinga.LocalFilter.Any != nil {
 		return fmt.Errorf("Only Icinga.LocalFilter.All or Icinga.LocalFilter.Any can be set")
 	}
 

@@ -177,12 +177,22 @@ func main() {
 		}
 
 		// filter the notification
-		if len(conf.Icinga.LocalFilter.All) != 0 && !conf.Icinga.LocalFilter.All.Match(x) {
+		if conf.Icinga.LocalFilter.All != nil && !conf.Icinga.LocalFilter.All.Match(x) {
+			if *debug {
+				log.Println("main: event didn't match All filter")
+			}
 			continue
 		}
 
-		if len(conf.Icinga.LocalFilter.Any) != 0 && !conf.Icinga.LocalFilter.Any.Match(x) {
+		if conf.Icinga.LocalFilter.Any != nil && !conf.Icinga.LocalFilter.Any.Match(x) {
+			if *debug {
+				log.Println("main: event didn't match Any filter")
+			}
 			continue
+		}
+
+		if *debug {
+			log.Println("main: event matched filters")
 		}
 
 		err = tu.update(&x)
