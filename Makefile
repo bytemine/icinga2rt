@@ -13,7 +13,7 @@ tar: dist bin/icinga2rt dist/icinga2rt.json.example
 bin: 
 	mkdir -p bin
 
-bin/icinga2rt: bin go.mod main.go cache.go ticket.go config.go rt/rt.go
+bin/icinga2rt: bin go.mod main.go cache.go ticket.go config.go rt/rt.go filter/filter.go
 	go build -o bin/icinga2rt
 
 test:
