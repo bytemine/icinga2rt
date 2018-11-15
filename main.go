@@ -176,6 +176,15 @@ func main() {
 			log.Println("main: event stream:", string(buf))
 		}
 
+		// filter the notification
+		if len(conf.Icinga.LocalFilter.All) != 0 && !conf.Icinga.LocalFilter.All.Match(x) {
+			continue
+		}
+
+		if len(conf.Icinga.LocalFilter.Any) != 0 && !conf.Icinga.LocalFilter.Any.Match(x) {
+			continue
+		}
+
 		err = tu.update(&x)
 		if err != nil {
 			log.Fatal("FATAL: main:", err)

@@ -9,15 +9,22 @@ import (
 	"strings"
 
 	"github.com/bytemine/go-icinga2/event"
+	"github.com/bytemine/icinga2rt/filter"
 )
 
+type localFilterConfig struct {
+	Any filter.Any
+	All filter.All
+}
+
 type icingaConfig struct {
-	URL      string
-	User     string
-	Password string
-	Filter   string
-	Insecure bool
-	Retries  int
+	URL         string
+	User        string
+	Password    string
+	Filter      string
+	LocalFilter localFilterConfig
+	Insecure    bool
+	Retries     int
 }
 
 type rtConfig struct {
@@ -52,6 +59,9 @@ var defaultConfig = config{
 		User:     "root",
 		Password: "secret",
 		Filter:   "",
+		LocalFilter: localFilterConfig{
+			All: filter.All{filter.Filter{Users: []string{"request-tracker"}}},
+		},
 		Insecure: true,
 		Retries:  5,
 	},
@@ -88,6 +98,10 @@ func checkConfig(conf *config) error {
 
 	if conf.Icinga.Retries == 0 {
 		return fmt.Errorf("Icinga.Retries must be > 0.")
+	}
+
+	if len(conf.Icinga.LocalFilter.All) > 0 && len(conf.Icinga.LocalFilter.Any) > 0 {
+		return fmt.Errorf("Only Icinga.LocalFilter.All or Icinga.LocalFilter.Any can be set")
 	}
 
 	if conf.Ticket.Queue == "" {
