@@ -34,6 +34,17 @@ If parts of this are used, comments (//...) must be removed. Using the `-example
 			"URL": "https://monitoring.example.com:5665", // URL to Icinga2 API
 			"User": "root", // Icinga2 API user
 			"Password": "secret", // Icinga2 API password
+			"Filter": "", // Icinga2 event stream filter expression
+			"LocalFilter": { // Local event filtering
+				"Any": null,
+				"All": [
+					{
+						"Users": [
+							"request-tracker"
+						]
+					}
+				]
+			},
 			"Insecure": true, // Ignore SSL certificate errors
 			"Retries": 5 // Maximum tries for connecting to Icinga2 API
 		},
@@ -108,7 +119,50 @@ Lines can be commented if their first character is `#`.
 	UNKNOWN,WARNING,true,comment
 	UNKNOWN,CRITICAL,false,comment
 	UNKNOWN,CRITICAL,true,comment
-	
+
+### Local Filters
+
+Instead of using the Icinga2 filter (which aren't that well documented
+:( ), you can filter the received events client side.  This happens by
+giving either an `All` filter set or an `Any` filter set in LocalFilters.
+These two sets are like conjunctive (cnf) and disjunctive (dnf) normal
+forms. In the `All` set, every filter must match but only one field
+of a filter has to match (cnf), the reverse logic applies to `Any`
+sets. You can't specifiy both sets.  A filter set consists of a list
+of event like objects, where each object can have the fields `Host`,
+`Service`, `Users`, `Author`, `Text` and `NotificationType`. If a field
+isn't present, it is ignored and has no impact on the filtering.
+At the moment, only comparison for equality is possible.
+
+#### Example: Filtering notifications by receiving users
+
+We are only interested in creating tickets for two specific users `foo` and `bar`.
+The easiest way to do this is to add a filter to the `All` set, consisting only of the
+two users:
+
+	"All": [
+		{
+			"Users": [
+				"foo",
+				"bar"
+			]
+		}
+	]
+
+Using the `Any` filter set, this would be:
+
+	"Any": [
+		{
+			"Users": [
+				"foo"
+			]
+		},
+		{
+			"Users": [
+				"bar"
+			]
+		}
+	]
 
 ## Running
 
