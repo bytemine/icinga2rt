@@ -200,10 +200,13 @@ const (
 	actionStringComment = "comment"
 	actionStringCreate  = "create"
 	actionStringIgnore  = "ignore"
+	actionStringStatus  = "status"
 )
 
 func parseCSVAction(value string) (actionFunc, error) {
-	switch strings.ToLower(value) {
+	fields := strings.SplitN(value, ":", 2)
+
+	switch strings.ToLower(fields[0]) {
 	case actionStringDelete:
 		return (*ticketUpdater).delete, nil
 	case actionStringComment:
@@ -212,6 +215,11 @@ func parseCSVAction(value string) (actionFunc, error) {
 		return (*ticketUpdater).create, nil
 	case actionStringIgnore:
 		return (*ticketUpdater).ignore, nil
+	case actionStringStatus:
+		if len(fields) != 2 || fields[1] == "" {
+			return nil, fmt.Errorf("invalid status action value: %v", value)
+		}
+		return statusActionFunc(fields[1]), nil
 	default:
 		return nil, fmt.Errorf("invalid action value: %v", value)
 	}

@@ -12,10 +12,11 @@ import (
 const testMappingsCSV = `# state, old state, owned, action
 # ignore OK events if no old state is known
 OK,,false,ignore
-# delete ticket if unowned and was WARNING, CRITICAL or UNKNOWN
+# delete ticket if unowned and was WARNING
 OK,WARNING,false,delete
-OK,CRITICAL,false,delete
-OK,UNKNOWN,false,delete
+# set ticket status if unowned and was CRITICAL or UNKNOWN
+OK,CRITICAL,false,status:resolved
+OK,UNKNOWN,false,status:customstatus
 # comment ticket if unowned and was WARNING, CRITICAL or UNKNOWN
 OK,WARNING,true,comment
 OK,CRITICAL,true,comment

@@ -203,3 +203,29 @@ func (t *ticketUpdater) ignore(e *event.Notification) error {
 	}
 	return nil
 }
+
+func statusActionFunc(s string) actionFunc {
+	return func(t *ticketUpdater, e *event.Notification) error {
+		_, ticketID, err := t.cache.getEventTicket(e)
+		if err != nil {
+			return err
+		}
+
+		newTicket := &rt.Ticket{ID: ticketID, Status: s}
+
+		updatedTicket, err := t.rtClient.UpdateTicket(newTicket)
+		if err != nil {
+			return err
+		}
+
+		if *debug {
+			log.Printf("%x ticket updater: set status %v for ticket #%v", eventID(e), s, updatedTicket.ID)
+		}
+
+		if err = t.cache.deleteEventTicket(e); err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
