@@ -203,27 +203,36 @@ const (
 	actionStringStatus  = "status"
 )
 
-func parseCSVAction(value string) (actionFunc, error) {
-	fields := strings.SplitN(value, ":", 2)
-
-	switch strings.ToLower(fields[0]) {
-	case actionStringDelete:
-		return (*ticketUpdater).delete, nil
-	case actionStringComment:
-		return (*ticketUpdater).comment, nil
-	case actionStringCreate:
-		return (*ticketUpdater).create, nil
-	case actionStringIgnore:
-		return (*ticketUpdater).ignore, nil
-	case actionStringStatus:
-		if len(fields) != 2 || fields[1] == "" {
-			return nil, fmt.Errorf("invalid status action value: %v", value)
+func parseCSVAction(action []string) (actionFunc, error) {
+	switch len(action) {
+	case 1:
+		switch strings.ToLower(action[0]) {
+		case actionStringDelete:
+			return (*ticketUpdater).delete, nil
+		case actionStringComment:
+			return (*ticketUpdater).comment, nil
+		case actionStringCreate:
+			return (*ticketUpdater).create, nil
+		case actionStringIgnore:
+			return (*ticketUpdater).ignore, nil
+		default:
+			return nil, fmt.Errorf("invalid action value: %v", action[0])
 		}
-		return statusActionFunc(fields[1]), nil
+	case 3:
+		switch strings.ToLower(action[0]) {
+		case actionStringStatus:
+			status := action[1]
+			invalidate, err := parseCSVBool(action[2])
+			if err != nil {
+				return nil, fmt.Errorf("invalid action: %v: %v", action, err)
+			}
+			return statusActionFunc(status, invalidate), nil
+		default:
+			return nil, fmt.Errorf("invalid action: %v, three valued action has to be %v", action[0], actionStringStatus)
+		}
 	default:
-		return nil, fmt.Errorf("invalid action value: %v", value)
+			return nil, fmt.Errorf("invalid action: %v, either one or three fields required", action)
 	}
-
 }
 
 func readMappings(r io.Reader) ([]mapping, error) {
@@ -232,8 +241,7 @@ func readMappings(r io.Reader) ([]mapping, error) {
 	x := csv.NewReader(r)
 	x.Comment = '#'
 
-	// state, old state, existing, owned, action
-	x.FieldsPerRecord = 4
+	x.FieldsPerRecord = -1
 	line := 0
 	for {
 		line++
@@ -244,6 +252,10 @@ func readMappings(r io.Reader) ([]mapping, error) {
 			}
 
 			break
+		}
+
+		if len(record) < 4 {
+			return nil, fmt.Errorf("error in line %v: to few fields, have %v want 4", line, len(record))
 		}
 
 		// uppercase the value as icingas strings are uppercase
@@ -259,7 +271,7 @@ func readMappings(r io.Reader) ([]mapping, error) {
 			return nil, fmt.Errorf("error in line %v: %v", line, err)
 		}
 
-		action, err := parseCSVAction(record[3])
+		action, err := parseCSVAction(record[3:])
 		if err != nil {
 			return nil, fmt.Errorf("error in line %v: %v", line, err)
 		}

@@ -15,8 +15,8 @@ OK,,false,ignore
 # delete ticket if unowned and was WARNING
 OK,WARNING,false,delete
 # set ticket status if unowned and was CRITICAL or UNKNOWN
-OK,CRITICAL,false,status:resolved
-OK,UNKNOWN,false,status:customstatus
+OK,CRITICAL,false,status,resolved,true
+OK,UNKNOWN,false,status,customstatus,true
 # comment ticket if unowned and was WARNING, CRITICAL or UNKNOWN
 OK,WARNING,true,comment
 OK,CRITICAL,true,comment

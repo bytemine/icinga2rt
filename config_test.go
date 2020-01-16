@@ -10,15 +10,15 @@ OK,WARNING,true,comment
 CRITICAL,UNKNOWN,false,ignore
 OK,WARNING,true,create
 CRITICAL,UNKNOWN,false,delete
-OK,WARNING,true,status:resolved`
+OK,WARNING,true,status,resolved,true`
 
 const invalidCSVState = `,WARNING,true,comment`
 const invalidCSVBool0 = `OK,WARNING,ŧ®üé,comment`
 const invalidCSVBool1 = `OK,WARNING,fæðlſ€,comment`
 const invalidCSVAction0 = `OK,WARNING,true,¢ömm€nŧ`
-const invalidCSVAction1 = `OK,WARNING,true,status:`
-const invalidCSVAction2 = `OK,WARNING,true,status`
-const invalidCSVAction3 = `OK,WARNING,true,foobar:`
+const invalidCSVAction1 = `OK,WARNING,true,status`
+const invalidCSVAction2 = `OK,WARNING,true,status,foobar`
+const invalidCSVAction3 = `OK,WARNING,true,status,foobar,trüe`
 
 func TestReadMappings(t *testing.T) {
 	r := strings.NewReader(validCSV)
@@ -35,7 +35,7 @@ func TestReadMappings(t *testing.T) {
 
 	t.Log(ms)
 
-	for _, v := range []string{invalidCSVState, invalidCSVBool0, invalidCSVBool1, invalidCSVAction0, invalidCSVAction1, invalidCSVAction2, invalidCSVAction2} {
+	for _, v := range []string{invalidCSVState, invalidCSVBool0, invalidCSVBool1, invalidCSVAction0, invalidCSVAction1, invalidCSVAction2, invalidCSVAction3} {
 		r := strings.NewReader(v)
 		_, err := readMappings(r)
 		if err == nil {

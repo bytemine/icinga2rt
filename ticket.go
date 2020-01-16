@@ -204,14 +204,14 @@ func (t *ticketUpdater) ignore(e *event.Notification) error {
 	return nil
 }
 
-func statusActionFunc(s string) actionFunc {
+func statusActionFunc(status string, invalidate bool) actionFunc {
 	return func(t *ticketUpdater, e *event.Notification) error {
 		_, ticketID, err := t.cache.getEventTicket(e)
 		if err != nil {
 			return err
 		}
 
-		newTicket := &rt.Ticket{ID: ticketID, Status: s}
+		newTicket := &rt.Ticket{ID: ticketID, Status: status}
 
 		updatedTicket, err := t.rtClient.UpdateTicket(newTicket)
 		if err != nil {
@@ -219,11 +219,21 @@ func statusActionFunc(s string) actionFunc {
 		}
 
 		if *debug {
-			log.Printf("%x ticket updater: set status %v for ticket #%v", eventID(e), s, updatedTicket.ID)
+			log.Printf("%x ticket updater: set status %v for ticket #%v", eventID(e), status, updatedTicket.ID)
 		}
 
-		if err = t.cache.deleteEventTicket(e); err != nil {
-			return err
+		switch invalidate {
+		case true:
+			if err = t.cache.deleteEventTicket(e); err != nil {
+				return err
+			}
+
+		case false:
+			err = t.cache.updateEventTicket(e, newTicket.ID)
+			if err != nil {
+				return err
+			}
+
 		}
 
 		return nil
