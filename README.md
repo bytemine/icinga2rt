@@ -72,12 +72,19 @@ If parts of this are used, comments (//...) must be removed. Using the `-example
 ### Mappings
 
 A mapping is the tuple of an events state, the old state (if any), if the ticket is owned, and an action to
-perform for this event. These mappings are stored in a CSV file with the columns
+perform for this event. If the action is "status" two additional fields are required, one for the new
+status of the ticket in Request Tracker and if the ticket-service mapping should be forgotten by icinga2rt.
+
+ These mappings are stored in a CSV file with the columns
 
 - state: one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK`
 - old state: one of `UNKNOWN`, `WARNING`, `CRITICAL`, `OK` or an empty string for non existing tickets. 
 - owned: one of `true` or `false`. should be `false` if old state is the empty string.
-- action: one of `create`, `comment`, `delete` or `ignore`
+- action: one of `create`, `comment`, `delete`, `ignore`, `status`
+- if action is `status`, two additional fields:
+  - status: free text of the new Request Tracker status
+  - invalidate: one of `true` or `false`. set to `true` if icinga2rt should forget about
+    this ticket after processing this event so that the next event creates a new ticket.
 
 The values supplied are read case-insensitive, but the values provided above are preferred.
 Lines can be commented if their first character is `#`.
@@ -87,11 +94,12 @@ Lines can be commented if their first character is `#`.
 	# state, old state, owned, action
 	# ignore OK events if no old state is known
 	OK,,false,ignore
-	# delete ticket if unowned and was WARNING, CRITICAL or UNKNOWN
-	OK,WARNING,false,delete
-	OK,CRITICAL,false,delete
+	# set ticket status to resolved if unowned and was WARNING, CRITICAL
+	OK,WARNING,false,status,resolved,true
+	OK,CRITICAL,false,status,resolved,true
+	# delete ticket if unowned and was UNKNOWN
 	OK,UNKNOWN,false,delete
-	# comment ticket if unowned and was WARNING, CRITICAL or UNKNOWN
+	# comment ticket if owned and was WARNING, CRITICAL or UNKNOWN
 	OK,WARNING,true,comment
 	OK,CRITICAL,true,comment
 	OK,UNKNOWN,true,comment
